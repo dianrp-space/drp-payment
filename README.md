@@ -1,4 +1,4 @@
-# QRIS Dynamic Generator - API Key Authentication
+# QRIS Dynamic Generator
 
 ## Setup Environment Variables
 
