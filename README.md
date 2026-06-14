@@ -44,11 +44,21 @@ curl -X POST http://localhost:3001/api/generate \
   }'
 ```
 
-**3. Ambil static QR dari Gambar QRIS:**
+**3. Ambil static QR dari Upload Gambar QRIS:**
 
 ```bash
 curl -X POST http://localhost:3001/api/parse-image \
   -F "file=@qr_image.jpg"
+```
+
+**4. Ambil static QR dari URL Gambar QRIS:**
+
+```bash
+curl -X POST http://localhost:3001/api/parse-image-url \
+  -H "Content-Type: application/json" \
+  -d '{
+    "imageUrl": "https://example.com/qr_image.jpg"
+  }'
 ```
 
 ### Response Format:

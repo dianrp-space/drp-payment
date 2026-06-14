@@ -102,5 +102,23 @@ app.post("/api/parse-image", upload.single("file"), async (req, res) => {
   }
 });
 
+// Endpoint: parse gambar QR dari URL
+app.post("/api/parse-image-url", async (req, res) => {
+  const { imageUrl } = req.body;
+  if (!imageUrl) return res.status(400).json({ error: "Missing imageUrl" });
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error("Failed to fetch image from URL");
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    const qris = await decodeQRFromImage(buffer);
+    res.json({ qris });
+  } catch (e) {
+    console.error("Error decoding QR from URL:", e);
+    res.status(500).json({ error: "Failed to decode QR from URL" });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`QRIS backend running on port ${PORT}`));

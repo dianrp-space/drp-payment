@@ -33,3 +33,18 @@ Server berjalan di port 3001 (http://localhost:3001)
 - Response:
   - `dynamicQris`: string QRIS dinamis
   - `qrImage`: base64 PNG QR code
+
+## 3. Parse QRIS dari Upload Gambar
+- Endpoint: `POST /api/parse-image`
+- Content-Type: `multipart/form-data`
+- Body:
+  - `file`: File gambar (JPG, PNG, dll)
+- Response:
+  - `qris`: string QRIS hasil scan
+
+## 4. Parse QRIS dari URL Gambar
+- Endpoint: `POST /api/parse-image-url`
+- Body JSON:
+  - `imageUrl`: string URL gambar QR
+- Response:
+  - `qris`: string QRIS hasil scan
