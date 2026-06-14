@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>API Documentation - DRP Network Solutions</title>
+    <title>Dokumentasi API - DRP Network Solutions</title>
     <link rel="icon" type="image/png" href="images/qris.png" />
     <link rel="stylesheet" href="style.css" />
     <style>
@@ -73,23 +73,23 @@
     <header class="header">
       <div class="header-inner">
         <img src="images/logo_blue.webp" alt="Logo" class="logo" />
-        <span class="site-title">DRP Network Solutions - API Documentation</span>
+        <span class="site-title">DRP Network Solutions - Dokumentasi API</span>
       </div>
     </header>
     
     <div class="container doc-content" style="max-width: 800px;">
       <div style="margin-bottom: 20px;">
-        <a href="index.html" style="text-decoration: none; color: #007bff;">&larr; Back to Generator</a>
+        <a href="index.html" style="text-decoration: none; color: #007bff;">&larr; Kembali ke Generator</a>
       </div>
       
-      <h1>QRIS Dynamic Generator API</h1>
-      <p>This API allows you to programmatically generate dynamic QRIS codes, parse QRIS strings from images, and check server health. The base URL for all API requests is your server's root domain, or <code>http://localhost:3001</code> if running locally.</p>
+      <h1>API Generator QRIS Dinamis</h1>
+      <p>API ini memungkinkan Anda untuk membuat kode QRIS dinamis secara terprogram, memindai string QRIS dari gambar, dan memeriksa status server. URL dasar untuk semua permintaan API adalah domain root server Anda, atau <code>http://localhost:3001</code> jika dijalankan secara lokal.</p>
 
       <div class="endpoint-block">
         <h2><span class="method-badge get">GET</span> /api/health</h2>
-        <p>Checks the health status of the API server.</p>
+        <p>Memeriksa status kesehatan server API.</p>
         
-        <h3>Response</h3>
+        <h3>Respons</h3>
         <pre><code>{
   "status": "OK",
   "timestamp": "2026-06-14T21:00:00.000Z"
@@ -98,61 +98,61 @@
 
       <div class="endpoint-block">
         <h2><span class="method-badge post">POST</span> /api/generate</h2>
-        <p>Generates a dynamic QRIS string and QR code image by injecting an amount into a static QRIS string.</p>
+        <p>Menghasilkan string QRIS dinamis dan gambar kode QR dengan menyuntikkan nominal ke dalam string QRIS statis.</p>
         
-        <h3>Request Headers</h3>
+        <h3>Header Permintaan</h3>
         <ul>
           <li><code>Content-Type: application/json</code></li>
         </ul>
 
-        <h3>Request Body</h3>
+        <h3>Isi Permintaan</h3>
         <pre><code>{
-  "staticQris": "000201010211...", // Required: The static QRIS string
-  "amount": 10000,               // Required: The transaction amount (number)
+  "staticQris": "000201010211...", // Wajib: String QRIS statis
+  "amount": 10000,               // Wajib: Nominal transaksi (angka)
 }</code></pre>
 
-        <h3>Response</h3>
+        <h3>Respons</h3>
         <pre><code>{
-  "dynamicQris": "000201010212...", // The generated dynamic QRIS string
-  "qrImage": "data:image/png;base64,iVBORw0K..." // Base64 encoded PNG image
+  "dynamicQris": "000201010212...", // String QRIS dinamis yang dihasilkan
+  "qrImage": "data:image/png;base64,iVBORw0K..." // Gambar PNG yang dienkode Base64
 }</code></pre>
       </div>
 
       <div class="endpoint-block">
         <h2><span class="method-badge post">POST</span> /api/parse-image</h2>
-        <p>Extracts the QRIS string from an uploaded QR code image.</p>
+        <p>Mengekstrak string QRIS dari unggahan gambar kode QR.</p>
         
-        <h3>Request Headers</h3>
+        <h3>Header Permintaan</h3>
         <ul>
           <li><code>Content-Type: multipart/form-data</code></li>
         </ul>
 
-        <h3>Request Body</h3>
-        <p>Send form data with a single field named <code>file</code> containing the image file (JPG, PNG, etc.).</p>
+        <h3>Isi Permintaan</h3>
+        <p>Kirim data form (form-data) dengan satu bidang bernama <code>file</code> yang berisi file gambar (JPG, PNG, dll.).</p>
 
-        <h3>Response</h3>
+        <h3>Respons</h3>
         <pre><code>{
-  "qris": "000201010211..." // The parsed QRIS string
+  "qris": "000201010211..." // String QRIS hasil pindaian
 }</code></pre>
       </div>
 
       <div class="endpoint-block">
         <h2><span class="method-badge post">POST</span> /api/parse-image-url</h2>
-        <p>Extracts the QRIS string from an image hosted at a given URL.</p>
+        <p>Mengekstrak string QRIS dari gambar yang dihosting di URL yang diberikan.</p>
         
-        <h3>Request Headers</h3>
+        <h3>Header Permintaan</h3>
         <ul>
           <li><code>Content-Type: application/json</code></li>
         </ul>
 
-        <h3>Request Body</h3>
+        <h3>Isi Permintaan</h3>
         <pre><code>{
-  "imageUrl": "https://example.com/path/to/qr-image.jpg" // Required: URL of the QR image
+  "imageUrl": "https://contoh.com/path/ke/qr-image.jpg" // Wajib: URL dari gambar QR
 }</code></pre>
 
-        <h3>Response</h3>
+        <h3>Respons</h3>
         <pre><code>{
-  "qris": "000201010211..." // The parsed QRIS string
+  "qris": "000201010211..." // String QRIS hasil pindaian
 }</code></pre>
       </div>
 
@@ -160,10 +160,10 @@
 
     <footer class="footer">
       <div class="footer-inner">
-        <img src="images/logo_blue.webp" alt="Footer Logo" />
+        <img src="images/logo_blue.webp" alt="Logo Footer" />
         <span>&copy; 2026 DRP Network Solutions</span>
         <span style="margin: 0 10px;">|</span>
-        <a href="index.html" style="color: white; text-decoration: none;">QRIS Generator</a>
+        <a href="index.html" style="color: white; text-decoration: none;">Generator QRIS</a>
       </div>
     </footer>
   </body>
