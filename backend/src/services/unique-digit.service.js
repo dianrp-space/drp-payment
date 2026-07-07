@@ -4,10 +4,10 @@ import { env } from "../config/env.js";
 // Range unique digit yang ditambahkan ke nominal agar tiap transaksi PENDING
 // punya totalAmount yang unik secara global (di-deteksi via macrodroid).
 export const UNIQUE_DIGIT_MIN = 1;
-export const UNIQUE_DIGIT_MAX = 999;
+export const UNIQUE_DIGIT_MAX = 300;
 
 /**
- * Cari unique digit (1..999) yang belum dipakai oleh transaksi PENDING manapun
+ * Cari unique digit (1..300) yang belum dipakai oleh transaksi PENDING manapun
  * untuk base nominal yang sama. Ini menjamin totalAmount unik global, sehingga
  * matcher bisa mencocokkan notifikasi masuk ke tepat satu transaksi.
  *
