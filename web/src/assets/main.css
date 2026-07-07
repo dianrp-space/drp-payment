@@ -1,0 +1,206 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   DRP Payment Gateway — Design tokens
+   "Modernized bank ledger" — warm paper light + warm dark.
+   Risk: serif display in a fintech tool.
+   ============================================================ */
+
+:root {
+  /* Surfaces — warm paper, NOT pure white */
+  --background: oklch(0.98 0.008 80);
+  --foreground: oklch(0.18 0.01 60);
+  --muted: oklch(0.96 0.01 80);
+  --muted-foreground: oklch(0.48 0.02 60);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.01 60);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.01 60);
+
+  /* Primary — deep emerald (trust, value, growth) */
+  --primary: oklch(0.35 0.09 165);
+  --primary-foreground: oklch(0.98 0.01 80);
+
+  /* Accent — muted gold (used sparingly) */
+  --accent: oklch(0.92 0.05 90);
+  --accent-foreground: oklch(0.30 0.05 80);
+
+  --destructive: oklch(0.50 0.20 27);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --success: oklch(0.40 0.12 150);
+  --success-foreground: oklch(0.98 0 0);
+  --warning: oklch(0.55 0.14 65);
+  --warning-foreground: oklch(0.18 0.01 60);
+
+  --border: oklch(0.92 0.01 75);
+  --input: oklch(0.92 0.01 75);
+  --ring: oklch(0.35 0.09 165);
+
+  --radius: 0.5rem;
+
+  --sidebar: oklch(0.97 0.01 80);
+  --sidebar-foreground: oklch(0.18 0.01 60);
+  --sidebar-primary: oklch(0.35 0.09 165);
+  --sidebar-primary-foreground: oklch(0.98 0.01 80);
+  --sidebar-accent: oklch(0.94 0.01 80);
+  --sidebar-accent-foreground: oklch(0.18 0.01 60);
+  --sidebar-border: oklch(0.92 0.01 75);
+  --sidebar-ring: oklch(0.35 0.09 165);
+
+  --chart-paid: oklch(0.40 0.12 150);
+  --chart-pending: oklch(0.55 0.14 65);
+  --chart-expired: oklch(0.50 0.20 27);
+  --chart-failed: oklch(0.50 0.20 27);
+}
+
+.dark {
+  --background: oklch(0.17 0.005 60);
+  --foreground: oklch(0.95 0.01 80);
+  --muted: oklch(0.22 0.005 60);
+  --muted-foreground: oklch(0.70 0.01 80);
+
+  --card: oklch(0.21 0.005 60);
+  --card-foreground: oklch(0.95 0.01 80);
+
+  --popover: oklch(0.21 0.005 60);
+  --popover-foreground: oklch(0.95 0.01 80);
+
+  --primary: oklch(0.70 0.13 165);
+  --primary-foreground: oklch(0.15 0.02 165);
+
+  --accent: oklch(0.30 0.04 80);
+  --accent-foreground: oklch(0.90 0.04 80);
+
+  --destructive: oklch(0.65 0.20 27);
+  --destructive-foreground: oklch(0.15 0.01 60);
+
+  --success: oklch(0.70 0.13 165);
+  --success-foreground: oklch(0.15 0.02 165);
+  --warning: oklch(0.75 0.14 65);
+  --warning-foreground: oklch(0.15 0.01 60);
+
+  --border: oklch(0.30 0.005 60);
+  --input: oklch(0.30 0.005 60);
+  --ring: oklch(0.70 0.13 165);
+
+  --sidebar: oklch(0.20 0.005 60);
+  --sidebar-foreground: oklch(0.95 0.01 80);
+  --sidebar-primary: oklch(0.70 0.13 165);
+  --sidebar-primary-foreground: oklch(0.15 0.02 165);
+  --sidebar-accent: oklch(0.25 0.005 60);
+  --sidebar-accent-foreground: oklch(0.95 0.01 80);
+  --sidebar-border: oklch(0.30 0.005 60);
+  --sidebar-ring: oklch(0.70 0.13 165);
+
+  --chart-paid: oklch(0.70 0.13 165);
+  --chart-pending: oklch(0.75 0.14 65);
+  --chart-expired: oklch(0.65 0.20 27);
+  --chart-failed: oklch(0.65 0.20 27);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-paid: var(--chart-paid);
+  --color-chart-pending: var(--chart-pending);
+  --color-chart-expired: var(--chart-expired);
+  --color-chart-failed: var(--chart-failed);
+
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-heading: var(--font-sans);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Display face: serif, used for hero numbers & section headings */
+  .font-display {
+    font-family: var(--font-serif);
+    font-feature-settings: "liga", "dlig";
+    letter-spacing: -0.01em;
+  }
+
+  /* Mono: for IDs, amounts in tables, QRIS strings */
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+    font-feature-settings: "calt" 0;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 25%, transparent);
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

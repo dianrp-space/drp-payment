@@ -1,98 +1,86 @@
-# QRIS Dynamic Generator
+# DRP Payment Gateway
 
-## Setup Environment Variables
+<p align="center">
+  <img src="web/public/drp-payment.webp" alt="DRP Payment Gateway" width="200" />
+</p>
 
-1. Edit file `.env` di folder backend:
+QRIS-only payment gateway pribadi ala Xendit/Duitku. API-driven, multi-merchant,
+dengan auto-detection pembayaran via notification listener (Macrodroid) dan
+signed webhook notification ke merchant.
+
+![License](https://img.shields.io/badge/status-active-2ecc71)
+![Stack](https://img.shields.io/badge/stack-Node%20%7C%20Express%20%7C%20PostgreSQL%20%7C%20Prisma-6cf)
+
+## Apa ini?
+
+Repo ini mengubah project lama (stateless QRIS dynamic generator) menjadi
+**payment gateway penuh** dengan lifecycle transaksi, multi-tenant merchant,
+payment detection, dan webhook notification.
+
+**Bedanya** dengan PG mainstream: QRIS-nya adalah QRIS personal kamu sendiri
+(disimpan per-merchant di DB), jadi 100% dana langsung masuk ke rekening/e-wallet
+kamu — tanpa perantara, tanpa biaya gateway.
+
+## Fitur
+
+- ✅ **Multi-merchant** — tiap merchant punya API key & webhook secret sendiri
+- ✅ **API Xendit/Duitku style** — `POST /v2/qris`, `GET /v2/payment-status`, dll
+- ✅ **Auto-detection** via Macrodroid (notification listener di HP Android)
+- ✅ **Unique digit matching** — nominal unik per transaksi PENDING
+- ✅ **Signed webhook** `payment.success` (HMAC-SHA256) + exponential retry
+- ✅ **Idempotent** via `(merchantId, referenceId)`
+- ✅ **Expiry cron** — transaksi lewat TTL otomatis EXPIRED
+- ✅ **Swagger UI** built-in di `/api-docs`
+
+## Quick Start (Lokal)
 
 ```bash
+# 1. Backend
 cd backend
-```
-
-2. Ubah file `.env`:
-
-```bash
-# Server port
-PORT=3001
-NODE_ENV=production
-```
-
-## Install Dependencies
-
-```bash
-cd backend
+cp .env.example .env             # edit DATABASE_URL, INTERNAL_TOKEN, ADMIN_TOKEN
 npm install
+npm run db:ensure                # buat database PostgreSQL
+npm run prisma:migrate           # apply schema
+npm start                        # jalan di port 8080
+
+# 2. Register merchant pertama (dapat API key 1x)
+curl -X POST http://localhost:8080/admin/merchants \
+  -H "X-Admin-Token: <ADMIN_TOKEN>" -H "Content-Type: application/json" \
+  -d '{"name":"Test","staticQris":"000201...","webhookUrl":"https://your.app/wh"}'
+
+# 3. Buat transaksi
+curl -X POST http://localhost:8080/v2/qris \
+  -H "Authorization: Bearer drp_live_..." -H "Content-Type: application/json" \
+  -d '{"referenceId":"INV-001","amount":25000}'
 ```
 
-## API Authentication dengan API Key
 
-### API Endpoints:
+## Dokumentasi
 
-**1. Cek Health Server:**
+| Topik | File |
+|---|---|
+| Backend setup & API reference | [`backend/README.md`](./backend/README.md) |
+| API docs (curated HTML) | [`api-documentation.html`](./api-documentation.html) |
+| API docs (Swagger interaktif) | `http://localhost:8080/api-docs` saat server jalan |
+| Setup payment detector (Android) | [`backend/docs/MACRODROID.md`](./backend/docs/MACRODROID.md) |
+| Deploy aaPanel + Nginx + SSL | [`backend/docs/DEPLOY-AAPANEL.md`](./backend/docs/DEPLOY-AAPANEL.md) |
 
-```bash
-curl -X GET http://localhost:3001/api/health
+## Struktur Repo
+
+```
+.
+├── index.html                # Landing page (front publik)
+├── api-documentation.html    # API reference (curated)
+├── style.css                 # Shared styling (dark blue theme)
+├── images/                   # Logo & aset
+├── README.md                 # (file ini)
+└── backend/                  # Payment gateway server
+    ├── prisma/               # schema, migrations, seed
+    ├── scripts/              # one-off scripts + e2e tests
+    ├── src/                  # config, routes, services, middlewares, utils, jobs
+    └── docs/                 # MACRODROID.md, DEPLOY-AAPANEL.md
 ```
 
-**2. Generate QRIS Dinamis dari Static:**
+## License
 
-```bash
-curl -X POST http://localhost:3001/api/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "staticQris": "QRIS_CODE_HERE",
-    "amount": 1000
-  }'
-```
-
-**3. Ambil static QR dari Upload Gambar QRIS:**
-
-```bash
-curl -X POST http://localhost:3001/api/parse-image \
-  -F "file=@qris_drp_network.jpeg"
-```
-
-**4. Ambil static QR dari URL Gambar QRIS:**
-
-```bash
-curl -X POST http://localhost:3001/api/parse-image-url \
-  -H "Content-Type: application/json" \
-  -d '{
-    "imageUrl": "https://example.com/qr_image.jpg"
-  }'
-```
-
-### Response Format:
-
-**Health Check API:**
-
-```json
-{
-  "status": "OK",
-  "timestamp": "2023-10-25T10:00:00.000Z"
-}
-```
-
-**Generate API:**
-
-```json
-{
-  "dynamicQris": "00020101021226610014COM...",
-  "qrImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
-}
-```
-
-**Parse API:**
-
-```json
-{
-  "qris": "00020101021126610014COM..."
-}
-```
-
-## Frontend Configuration
-Frontend langsung dibuka pada index.html
-API dan Frontend tanpa menggunakan API key.
-
-Feel free to use.
-Bisa pakai macrodroid untuk tangkap notifikasi dan kirim webhook.
-
+Personal use — © DRP Network Solutions.

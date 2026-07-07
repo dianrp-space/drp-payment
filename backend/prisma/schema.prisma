@@ -1,0 +1,181 @@
+// DRP Payment Gateway schema
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ADMIN (dashboard user — currently single admin)
+// ============================================================
+model Admin {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  apiToken     String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ============================================================
+// MERCHANT (multi-tenant)
+// ============================================================
+model Merchant {
+  id            String        @id @default(cuid())
+  name          String
+  email         String?       @unique
+  // Hashed API key (sha256 hex). The raw key only shown once at creation.
+  apiKeyHash    String        @unique
+  // Last 4 chars for display in dashboard (e.g. "....9F3A")
+  apiKeyHint    String
+  // Raw API key encrypted (AES-256-GCM). Dipakai untuk fitur "reveal & salin"
+  // dari dashboard admin. Null untuk merchant lama (raw key sudah hilang) —
+  // bisa diisi dengan rotateApiKey.
+  apiKeyEncrypted String?     @db.Text
+  // HMAC secret used to sign outgoing webhooks to this merchant
+  webhookSecret String
+  // Per-merchant Macrodroid callback token (dipakai utk auth
+  // POST /v2/callback/:merchantId via header X-Callback-Token).
+  // Null = callback per-merchant belum di-setup (fallback ke global).
+  callbackToken String? @unique
+  // Merchant callback URL where PAID events are delivered
+  webhookUrl    String?
+  // Static QRIS string (the merchant's personal QRIS)
+  staticQris    String        @db.Text
+  status        MerchantStatus @default(ACTIVE)
+  // Admin-side metadata
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  transactions  Transaction[]
+
+  @@index([status])
+}
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+// ============================================================
+// TRANSACTION (one QRIS payment request)
+// ============================================================
+model Transaction {
+  id              String           @id @default(cuid())
+  merchantId      String
+  merchant        Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  // Merchant-supplied order id. Unique per merchant for idempotency.
+  referenceId     String
+
+  // Base amount requested by merchant (in IDR, no decimals)
+  amount          Int
+  // Service fee (in IDR)
+  fee             Int              @default(0)
+  // 3-digit unique suffix added to fee to make totalAmount unique per PENDING trx
+  uniqueDigit     Int              @default(0)
+  // amount + fee + uniqueDigit (exact value the customer must pay)
+  totalAmount     Int
+
+  // Stored QRIS payload for this transaction
+  qrisString      String           @db.Text
+  qrisImageBase64 String           @db.Text
+
+  status          TransactionStatus @default(PENDING)
+  paidAmount      Int?
+  paidAt          DateTime?
+  expiresAt       DateTime?
+
+  // Raw reference of the matched notification (debug)
+  matchedBy       String?
+
+  // Webhook delivery tracking
+  webhookStatus   WebhookStatus    @default(NONE)
+  webhookAttempts Int              @default(0)
+  webhookSentAt   DateTime?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  webhookLogs     WebhookLog[]
+
+  @@unique([merchantId, referenceId])
+  @@index([merchantId, status, createdAt])
+  @@index([status, expiresAt])
+  @@index([totalAmount, status])
+}
+
+enum TransactionStatus {
+  PENDING
+  PAID
+  EXPIRED
+  FAILED
+}
+
+enum WebhookStatus {
+  NONE
+  PENDING
+  SENT
+  FAILED
+}
+
+// ============================================================
+// WEBHOOK LOG (audit trail of every webhook attempt)
+// ============================================================
+model WebhookLog {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  attempt       Int
+  eventType     String      @default("payment.success")
+  statusCode    Int?
+  success       Boolean     @default(false)
+  responseBody  String?     @db.Text
+  errorMessage  String?
+  payload       Json
+  createdAt     DateTime    @default(now())
+
+  @@index([transactionId])
+}
+
+// ============================================================
+// APP SETTING (singleton row, id = "default")
+// Branding yang bisa diubah dari dashboard: nama app, logo, favicon.
+// Nilai null = fallback ke default.
+// ============================================================
+model AppSetting {
+  id            String   @id @default("default")
+  // Display name untuk seluruh konsol (header, sidebar, login, <title>).
+  appName       String?
+  // Logo app sebagai data URL (base64). Tampil di header/sidebar/login.
+  appLogoBase64 String?  @db.Text
+  // Favicon sebagai data URL (base64). Dipakai untuk <link rel="icon">.
+  faviconBase64 String?  @db.Text
+  updatedAt     DateTime @updatedAt
+}
+
+// ============================================================
+// API LOG (optional audit of inbound API calls)
+// ============================================================
+model ApiLog {
+  id         String   @id @default(cuid())
+  merchantId String?
+  method     String
+  path       String
+  statusCode Int
+  ip         String?
+  userAgent  String?  @db.Text
+  durationMs Int?
+  createdAt  DateTime @default(now())
+
+  @@index([merchantId, createdAt])
+  @@index([createdAt])
+}

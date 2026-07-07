@@ -3,3 +3,6 @@
 node_modules/
 *.log
 .env
+
+# Prisma generated client
+generated/

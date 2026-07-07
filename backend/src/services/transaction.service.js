@@ -1,0 +1,170 @@
+import { prisma } from "../config/db.js";
+import { env } from "../config/env.js";
+import { generateDynamicQRIS, renderQrisImage } from "../utils/qris-builder.js";
+import { pickUniqueDigit } from "./unique-digit.service.js";
+import {
+  badRequest,
+  conflict,
+  notFound,
+  unprocessable,
+} from "../utils/errors.js";
+
+const DEFAULT_CURRENCY_NOTE =
+  "amount must be a positive integer IDR value (e.g. 10000)";
+
+/** Validate amount is a positive integer within sane bounds. */
+function validateAmount(amount) {
+  const n = Math.trunc(Number(amount));
+  if (!Number.isFinite(n) || n < 100) {
+    throw badRequest(DEFAULT_CURRENCY_NOTE + " (min 100)");
+  }
+  if (n > 1_000_000_000) {
+    throw badRequest(DEFAULT_CURRENCY_NOTE + " (max 1.000.000.000)");
+  }
+  return n;
+}
+
+/**
+ * Create a QRIS transaction for a merchant.
+ * Idempotent on (merchantId, referenceId): re-returns existing PENDING trx.
+ *
+ * @param {object} merchant - resolved merchant row (from auth middleware)
+ * @param {{ referenceId: string, amount: number, fee?: number, expiresInMinutes?: number }} input
+ */
+export async function createTransaction(merchant, input) {
+  const referenceId = String(input.referenceId ?? "").trim();
+  if (!referenceId) throw badRequest("referenceId is required");
+  if (referenceId.length > 100) {
+    throw badRequest("referenceId max 100 chars");
+  }
+
+  const amount = validateAmount(input.amount);
+  const fee = Math.max(0, Math.trunc(Number(input.fee ?? 0)));
+
+  // Idempotency: existing transaction with same (merchantId, referenceId)
+  const existing = await prisma.transaction.findUnique({
+    where: {
+      merchantId_referenceId: { merchantId: merchant.id, referenceId },
+    },
+  });
+  if (existing) {
+    if (existing.status === "PENDING") {
+      return { transaction: existing, created: false };
+    }
+    throw conflict(
+      `Transaction with referenceId '${referenceId}' already ${existing.status}`
+    );
+  }
+
+  // Generate unique digit agar totalAmount unik global di antara PENDING
+  const baseAmount = amount + fee;
+  const uniqueDigit = await pickUniqueDigit(baseAmount);
+  const totalAmount = baseAmount + uniqueDigit;
+
+  // Render QRIS dinamis dari static merchant
+  const qrisString = generateDynamicQRIS(merchant.staticQris, totalAmount);
+  const qrisImageBase64 = await renderQrisImage(qrisString, env.QR_IMAGE_FORMAT);
+
+  const expiresInMinutes = Math.max(
+    1,
+    Math.trunc(Number(input.expiresInMinutes ?? env.DEFAULT_EXPIRY_MINUTES))
+  );
+  const expiresAt = new Date(Date.now() + expiresInMinutes * 60_000);
+
+  const transaction = await prisma.transaction.create({
+    data: {
+      merchantId: merchant.id,
+      referenceId,
+      amount,
+      fee,
+      uniqueDigit,
+      totalAmount,
+      qrisString,
+      qrisImageBase64,
+      expiresAt,
+    },
+  });
+
+  return { transaction, created: true };
+}
+
+/**
+ * Get transaction status for a merchant by referenceId OR transactionId.
+ */
+export async function getTransactionStatus(merchant, query) {
+  const { referenceId, transactionId } = query || {};
+  if (!referenceId && !transactionId) {
+    throw badRequest("Provide referenceId or transactionId");
+  }
+
+  let tx = null;
+  if (transactionId) {
+    tx = await prisma.transaction.findUnique({ where: { id: transactionId } });
+  } else if (referenceId) {
+    tx = await prisma.transaction.findUnique({
+      where: {
+        merchantId_referenceId: { merchantId: merchant.id, referenceId },
+      },
+    });
+  }
+
+  if (!tx || tx.merchantId !== merchant.id) {
+    throw notFound("Transaction not found");
+  }
+  return tx;
+}
+
+/**
+ * Mark a transaction PENDING -> EXPIRED (manual cancel) or no-op if not pending.
+ */
+export async function cancelTransaction(merchant, referenceId) {
+  const tx = await prisma.transaction.findUnique({
+    where: {
+      merchantId_referenceId: { merchantId: merchant.id, referenceId },
+    },
+  });
+  if (!tx) throw notFound("Transaction not found");
+  if (tx.status !== "PENDING") {
+    throw unprocessable(`Transaction already ${tx.status}`);
+  }
+
+  return prisma.transaction.update({
+    where: { id: tx.id },
+    data: { status: "EXPIRED" },
+  });
+}
+
+/**
+ * Sweep all PENDING transactions whose expiresAt has passed -> mark EXPIRED.
+ * Called periodically by a cron job (Phase 2+).
+ *
+ * @returns {Promise<number>} count of expired transactions
+ */
+export async function expireStaleTransactions() {
+  const result = await prisma.transaction.updateMany({
+    where: { status: "PENDING", expiresAt: { lt: new Date() } },
+    data: { status: "EXPIRED" },
+  });
+  return result.count;
+}
+
+/**
+ * Serialize a transaction row into the public merchant-facing shape.
+ */
+export function serializeTransaction(t) {
+  return {
+    transactionId: t.id,
+    referenceId: t.referenceId,
+    status: t.status,
+    amount: t.amount,
+    fee: t.fee,
+    uniqueDigit: t.uniqueDigit,
+    totalAmount: t.totalAmount,
+    qrisString: t.qrisString,
+    qrisImageBase64: t.qrisImageBase64,
+    expiresAt: t.expiresAt,
+    paidAt: t.paidAt,
+    paidAmount: t.paidAmount,
+    createdAt: t.createdAt,
+  };
+}
