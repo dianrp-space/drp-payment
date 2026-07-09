@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, RouterLink } from "vue-router";
-import { Sun, Moon, Menu, LogOut, QrCode } from "lucide-vue-next";
+import { Sun, Moon, Menu, LogOut, QrCode } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useUiStore } from "@/stores/ui";

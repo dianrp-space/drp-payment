@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { toast } from "vue-sonner";
 import {
   Loader2, Save, Upload, X, RotateCcw, Image as ImageIcon, User, Lock,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

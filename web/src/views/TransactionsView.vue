@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { RouterLink } from "vue-router";
-import { Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-vue-next";
+import { Search, ChevronLeft, ChevronRight, Loader2 } from "@lucide/vue";
 import {
   Table,
   TableBody,

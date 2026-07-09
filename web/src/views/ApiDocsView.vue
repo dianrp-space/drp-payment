@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpen, ExternalLink, RotateCw } from "lucide-vue-next";
+import { BookOpen, ExternalLink, RotateCw } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { ref } from "vue";
 

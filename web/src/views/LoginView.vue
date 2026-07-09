@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Loader2, ArrowRight, Mail, Lock, QrCode } from "lucide-vue-next";
+import { Loader2, ArrowRight, Mail, Lock, QrCode } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

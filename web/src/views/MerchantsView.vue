@@ -3,7 +3,7 @@ import { ref, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import {
   Plus, Loader2, Store, Upload, X, Trash2,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { toast } from "vue-sonner";
 import {
   Table,

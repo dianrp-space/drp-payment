@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { toast } from "vue-sonner";
-import { Copy, AlertTriangle, Check } from "lucide-vue-next";
+import { Copy, AlertTriangle, Check } from "@lucide/vue";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { copyToClipboard } from "@/lib/utils";

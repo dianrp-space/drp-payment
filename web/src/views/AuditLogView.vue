@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { Search, ChevronLeft, ChevronRight, Loader2, Copy, Trash2, Settings2 } from "lucide-vue-next";
+import { Search, ChevronLeft, ChevronRight, Loader2, Copy, Trash2, Settings2 } from "@lucide/vue";
 import { toast } from "vue-sonner";
 import Swal from "sweetalert2";
 import {

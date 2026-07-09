@@ -18,7 +18,7 @@ import {
   Eye,
   EyeOff,
   Pencil,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

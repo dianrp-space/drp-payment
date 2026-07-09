@@ -10,7 +10,7 @@ import {
   PanelLeftOpen,
   QrCode,
   ScrollText,
-} from "lucide-vue-next";
+} from "@lucide/vue";
 import {
   Sheet,
   SheetContent,

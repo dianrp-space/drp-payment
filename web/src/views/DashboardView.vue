@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { ArrowUpRight, Loader2 } from "lucide-vue-next";
+import { ArrowUpRight, Loader2 } from "@lucide/vue";
 import { RouterLink } from "vue-router";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
