@@ -244,4 +244,30 @@ export const api = {
     merchantId?: string;
     q?: string;
   } = {}) => request<Paginated<ApiLog>>("/admin/audit-logs", { query: params }),
+
+  getAuditStats: () =>
+    request<{ total: number; oldest: string | null; newest: string | null }>(
+      "/admin/audit-logs/stats"
+    ),
+
+  cleanupAuditLogs: (days: number) =>
+    request<{ deleted: number; cutoff: string }>("/admin/audit-logs/cleanup", {
+      method: "POST",
+      body: { days },
+    }),
+
+  getAuditCleanupSettings: () =>
+    request<{ settings: { enabled: boolean; retentionDays: number; intervalHours: number } }>(
+      "/admin/settings/audit-cleanup"
+    ),
+
+  updateAuditCleanupSettings: (data: {
+    enabled?: boolean;
+    retentionDays?: number;
+    intervalHours?: number;
+  }) =>
+    request<{ settings: { enabled: boolean; retentionDays: number; intervalHours: number } }>(
+      "/admin/settings/audit-cleanup",
+      { method: "PATCH", body: data }
+    ),
 };

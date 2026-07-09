@@ -18,7 +18,7 @@ function openExternal() {
 <template>
   <div class="h-full flex flex-col">
     <header
-      class="px-6 md:px-10 py-6 border-b border-border flex items-center gap-3 shrink-0"
+      class="px-6 md:px-10 py-6 border-b border-base-300 flex items-center gap-3 shrink-0"
     >
       <div
         class="flex items-center justify-center size-9 rounded-md bg-primary/10 text-primary shrink-0"
@@ -27,7 +27,7 @@ function openExternal() {
       </div>
       <div class="min-w-0 flex-1">
         <h1 class="font-display text-2xl italic leading-none">API Docs</h1>
-        <p class="text-[11px] text-muted-foreground font-mono mt-1">
+        <p class="text-[11px] text-base-content/60 font-mono mt-1">
           OpenAPI 3.0 · Swagger UI
         </p>
       </div>

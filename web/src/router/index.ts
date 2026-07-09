@@ -20,7 +20,7 @@ const router = createRouter({
           path: "",
           name: "dashboard",
           component: () => import("@/views/DashboardView.vue"),
-          meta: { title: "Ringkasan" },
+          meta: { title: "Dashboard" },
         },
         {
           path: "transactions",

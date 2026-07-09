@@ -94,11 +94,11 @@ const rangeText = computed(() => {
 <template>
   <div class="p-6 md:p-10 max-w-7xl mx-auto">
     <header class="mb-8">
-      <p class="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
+      <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/60 mb-2">
         Buku besar
       </p>
       <h1 class="font-display text-4xl italic">Transaksi</h1>
-      <p class="text-sm text-muted-foreground mt-2">
+      <p class="text-sm text-base-content/60 mt-2">
         Semua transaksi lintas merchant, urut paling baru.
       </p>
     </header>
@@ -107,7 +107,7 @@ const rangeText = computed(() => {
     <div class="flex flex-col sm:flex-row gap-3 mb-5">
       <div class="relative flex-1 max-w-md">
         <Search
-          class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
+          class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-base-content/60 pointer-events-none"
         />
         <Input
           v-model="searchInput"
@@ -130,7 +130,7 @@ const rangeText = computed(() => {
     </div>
 
     <div
-      class="border border-border rounded-xl overflow-hidden bg-card"
+      class="border border-base-300 rounded-xl overflow-hidden bg-base-100"
     >
       <Table>
         <TableHeader>
@@ -145,12 +145,12 @@ const rangeText = computed(() => {
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading && !items.length">
-            <TableCell :colspan="6" class="text-center py-12 text-muted-foreground">
+            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
               <Loader2 class="size-5 animate-spin inline-block" />
             </TableCell>
           </TableRow>
           <TableRow v-else-if="!items.length">
-            <TableCell :colspan="6" class="text-center py-12 text-muted-foreground">
+            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
               Tidak ada transaksi.
             </TableCell>
           </TableRow>
@@ -165,7 +165,7 @@ const rangeText = computed(() => {
                 class="block"
               >
                 <div class="font-medium text-sm">{{ tx.referenceId }}</div>
-                <div class="text-[11px] text-muted-foreground font-mono mt-0.5">
+                <div class="text-[11px] text-base-content/60 font-mono mt-0.5">
                   {{ shortId(tx.transactionId) }}
                 </div>
               </RouterLink>
@@ -183,10 +183,10 @@ const rangeText = computed(() => {
                 <StatusBadge :status="tx.status" />
               </RouterLink>
             </TableCell>
-            <TableCell class="text-right text-xs text-muted-foreground font-mono">
+            <TableCell class="text-right text-xs text-base-content/60 font-mono">
               {{ tx.paidAt ? formatDateTime(tx.paidAt) : "—" }}
             </TableCell>
-            <TableCell class="text-right text-xs text-muted-foreground font-mono">
+            <TableCell class="text-right text-xs text-base-content/60 font-mono">
               {{ formatDateTime(tx.createdAt) }}
             </TableCell>
           </TableRow>
@@ -199,7 +199,7 @@ const rangeText = computed(() => {
       v-if="pagination.total > 0"
       class="flex items-center justify-between mt-4 text-sm"
     >
-      <span class="text-muted-foreground font-mono text-xs">{{ rangeText }}</span>
+      <span class="text-base-content/60 font-mono text-xs">{{ rangeText }}</span>
       <div class="flex gap-1">
         <Button
           variant="outline"

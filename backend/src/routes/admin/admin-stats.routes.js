@@ -6,6 +6,8 @@ import {
   getTransaction,
   retryWebhook,
   listAuditLogs,
+  cleanupAuditLogs,
+  getAuditStats,
 } from "../../controllers/admin-stats.controller.js";
 
 const router = Router();
@@ -90,5 +92,7 @@ router.post("/transactions/:id/retry-webhook", requireAdmin, retryWebhook);
  *         schema: { type: string, description: "Search path / merchantId / IP" }
  */
 router.get("/audit-logs", requireAdmin, listAuditLogs);
+router.post("/audit-logs/cleanup", requireAdmin, cleanupAuditLogs);
+router.get("/audit-logs/stats", requireAdmin, getAuditStats);
 
 export default router;

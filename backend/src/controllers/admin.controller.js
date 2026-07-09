@@ -8,6 +8,7 @@ import {
   signJwt,
   decryptApiKey,
 } from "../utils/crypto.js";
+import { assertSafeFetchUrl } from "../utils/ssrf.js";
 import { notFound } from "../utils/errors.js";
 
 const createSchema = z.object({
@@ -20,6 +21,7 @@ const createSchema = z.object({
 
 export const createMerchant = asyncHandler(async (req, res) => {
   const parsed = createSchema.parse(req.body);
+  if (parsed.webhookUrl) assertSafeFetchUrl(parsed.webhookUrl);
   const { merchant, rawApiKey } = await merchantService.createMerchant(parsed);
   res.status(201).json({
     merchant: {
@@ -78,6 +80,7 @@ const updateMerchantSchema = z.object({
 
 export const updateWebhook = asyncHandler(async (req, res) => {
   const { webhookUrl } = updateWebhookSchema.parse(req.body);
+  if (webhookUrl) assertSafeFetchUrl(webhookUrl);
   const merchant = await merchantService.updateWebhookUrl(req.params.id, webhookUrl);
   res.json({ merchant: { id: merchant.id, webhookUrl: merchant.webhookUrl } });
 });
@@ -148,6 +151,8 @@ export const testMerchantWebhook = asyncHandler(async (req, res) => {
   if (!merchant.webhookUrl) {
     return res.status(400).json({ error: "Merchant belum memiliki webhookUrl" });
   }
+
+  assertSafeFetchUrl(merchant.webhookUrl);
 
   const payload = {
     event: "payment.success",

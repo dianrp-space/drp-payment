@@ -148,7 +148,7 @@ async function testWebhook() {
       toast.error("Webhook gagal (HTTP " + res.statusCode + ")");
     }
   } catch (e) {
-    testResult.value = { success: false, statusCode: null, responseBody: null, errorMessage: "Gagal terhubung ke server" };
+    testResult.value = { success: false, statusCode: null, responseBody: null, errorMessage: "Gagal terhubung ke server", payload: null, signature: "" };
     toast.error("Gagal mengirim webhook");
   } finally {
     testingWebhook.value = false;
@@ -340,7 +340,7 @@ onMounted(load);
   <div class="p-6 md:p-10 max-w-4xl mx-auto">
     <RouterLink
       to="/merchants"
-      class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
+      class="inline-flex items-center gap-1.5 text-sm text-base-content/60 hover:text-base-content mb-6"
     >
       <ArrowLeft class="size-4" /> Kembali
     </RouterLink>
@@ -351,19 +351,19 @@ onMounted(load);
       <Skeleton class="h-64" />
     </template>
 
-    <div v-else-if="error" class="text-destructive">{{ error }}</div>
+    <div v-else-if="error" class="text-error">{{ error }}</div>
 
     <template v-else-if="merchant">
       <header class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <div class="flex items-center gap-3 mb-2">
             <StatusBadge :status="merchant.status" />
-            <span class="text-[11px] text-muted-foreground font-mono">
+            <span class="text-[11px] text-base-content/60 font-mono">
               {{ shortId(merchant.id) }}
             </span>
           </div>
           <h1 class="font-display text-4xl italic">{{ merchant.name }}</h1>
-          <p class="text-sm text-muted-foreground mt-1">
+          <p class="text-sm text-base-content/60 mt-1">
             {{ merchant.email ?? "Tanpa email" }} · dibuat
             {{ formatDateTime(merchant.createdAt) }}
           </p>
@@ -388,12 +388,12 @@ onMounted(load);
 
           <!-- QR Preview -->
           <div class="mb-5">
-            <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+            <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-2">
               QRIS Merchant
             </p>
             <div class="flex gap-4 items-start">
               <div
-                class="inline-flex items-center justify-center bg-white rounded-md border border-border p-2 shrink-0"
+                class="inline-flex items-center justify-center bg-white rounded-md border border-base-300 p-2 shrink-0"
               >
                 <img
                   v-if="qrImageBase64"
@@ -403,13 +403,13 @@ onMounted(load);
                 />
                 <div
                   v-else-if="loadingQr"
-                  class="size-32 flex items-center justify-center text-muted-foreground"
+                  class="size-32 flex items-center justify-center text-base-content/60"
                 >
                   <Loader2 class="size-5 animate-spin" />
                 </div>
                 <div
                   v-else
-                  class="size-32 flex flex-col items-center justify-center gap-1 text-muted-foreground"
+                  class="size-32 flex flex-col items-center justify-center gap-1 text-base-content/60"
                 >
                   <QrCode class="size-6" />
                   <span class="text-[10px]">Gagal muat</span>
@@ -417,25 +417,25 @@ onMounted(load);
               </div>
               <div class="flex-1 min-w-0 space-y-2">
                 <div v-if="merchant.qrisName">
-                  <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-0.5">
+                  <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-0.5">
                     Nama QRIS
                   </p>
                   <p class="font-display text-xl italic">{{ merchant.qrisName }}</p>
-                  <p v-if="merchant.qrisCity" class="text-xs text-muted-foreground">
+                  <p v-if="merchant.qrisCity" class="text-xs text-base-content/60">
                     {{ merchant.qrisCity }}
                   </p>
                 </div>
                 <div v-if="merchant.qrisProvider">
-                  <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-0.5">
+                  <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-0.5">
                     Provider QRIS
                   </p>
                   <p class="text-sm font-mono">{{ merchant.qrisProvider }}</p>
                 </div>
                 <div>
-                  <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-0.5">
+                  <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-0.5">
                     String QRIS
                   </p>
-                  <code class="block font-mono text-[11px] bg-muted/40 border border-border rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto">
+                  <code class="block font-mono text-[11px] bg-base-200 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto">
                     {{ merchant.staticQris }}
                   </code>
                 </div>
@@ -445,7 +445,7 @@ onMounted(load);
 
           <dl class="space-y-3 text-sm">
             <div>
-              <dt class="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+              <dt class="text-[11px] uppercase tracking-wider text-base-content/60 mb-1">
                 API Key
               </dt>
               <dd class="flex flex-col gap-2">
@@ -455,7 +455,7 @@ onMounted(load);
                   class="flex items-center gap-2"
                 >
                   <code
-                    class="flex-1 font-mono text-xs bg-muted/40 border border-border rounded px-2 py-1.5 break-all"
+                    class="flex-1 font-mono text-xs bg-base-200 border border-base-300 rounded px-2 py-1.5 break-all"
                   >{{ revealedApiKey }}</code>
                   <Button variant="ghost" size="sm" class="shrink-0" @click="copyApiKey">
                     <Copy class="size-3.5" />
@@ -463,7 +463,7 @@ onMounted(load);
                   <Button
                     variant="ghost"
                     size="sm"
-                    class="shrink-0 text-muted-foreground"
+                    class="shrink-0 text-base-content/60"
                     @click="revealedApiKey = null"
                   >
                     <EyeOff class="size-3.5" />
@@ -471,7 +471,7 @@ onMounted(load);
                 </div>
                 <!-- Hint (default) -->
                 <div v-else class="flex items-center justify-between gap-2">
-                  <code class="font-mono text-xs bg-muted/40 border border-border rounded px-2 py-1 flex-1">
+                  <code class="font-mono text-xs bg-base-200 border border-base-300 rounded px-2 py-1 flex-1">
                     {{ merchant.apiKeyHint }}
                   </code>
                   <div class="flex gap-1">
@@ -490,7 +490,7 @@ onMounted(load);
                     </Button>
                   </div>
                 </div>
-                <p class="text-[11px] text-muted-foreground">
+                <p class="text-[11px] text-base-content/60">
                   Klik <Eye class="inline size-3 align-text-bottom" /> untuk
                   tampilkan &amp; salin key utuh.
                 </p>
@@ -498,11 +498,11 @@ onMounted(load);
             </div>
 
             <div>
-              <dt class="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+              <dt class="text-[11px] uppercase tracking-wider text-base-content/60 mb-1">
                 Webhook Secret
               </dt>
               <dd class="flex items-center justify-between gap-2">
-                <code class="font-mono text-xs break-all bg-muted/40 border border-border rounded px-2 py-1 flex-1">
+                <code class="font-mono text-xs break-all bg-base-200 border border-base-300 rounded px-2 py-1 flex-1">
                   {{ merchant.webhookSecret }}
                 </code>
                 <div class="flex gap-1">
@@ -532,7 +532,7 @@ onMounted(load);
               placeholder="https://app.merchant.com/qris-callback"
               class="font-mono text-xs"
             />
-            <p class="text-[11px] text-muted-foreground">
+            <p class="text-[11px] text-base-content/60">
               Set kosong untuk menonaktifkan webhook delivery ke merchant ini.
             </p>
             <Button
@@ -549,10 +549,10 @@ onMounted(load);
           <Separator class="my-5" />
 
           <div>
-            <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+            <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-2">
               Test Webhook
             </p>
-            <p class="text-xs text-muted-foreground mb-3">
+            <p class="text-xs text-base-content/60 mb-3">
               Kirim sample payload <code class="font-mono text-[11px]">payment.success</code>
               ke URL webhook merchant untuk verifikasi integrasi.
             </p>
@@ -573,23 +573,23 @@ onMounted(load);
               <div class="flex items-center gap-1.5">
                 <CheckCircle2
                   v-if="testResult.success"
-                  class="size-3.5 text-emerald-600 shrink-0"
+                  class="size-3.5 text-success shrink-0"
                 />
                 <XCircle
                   v-else
-                  class="size-3.5 text-destructive shrink-0"
+                  class="size-3.5 text-error shrink-0"
                 />
                 <span v-if="testResult.statusCode">
                   HTTP {{ testResult.statusCode }}
                 </span>
-                <span v-else-if="testResult.errorMessage" class="text-destructive">
+                <span v-else-if="testResult.errorMessage" class="text-error">
                   {{ testResult.errorMessage }}
                 </span>
               </div>
               <div v-if="testResult.responseBody" class="mt-1">
-                <details class="text-muted-foreground">
+                <details class="text-base-content/60">
                   <summary class="cursor-pointer text-[11px]">Response body</summary>
-                  <pre class="mt-1 font-mono text-[10px] bg-muted/40 border border-border rounded p-2 max-h-32 overflow-auto whitespace-pre-wrap">{{ testResult.responseBody }}</pre>
+                  <pre class="mt-1 font-mono text-[10px] bg-base-200 border border-base-300 rounded p-2 max-h-32 overflow-auto whitespace-pre-wrap">{{ testResult.responseBody }}</pre>
                 </details>
               </div>
             </div>
@@ -598,7 +598,7 @@ onMounted(load);
           <Separator class="my-5" />
 
           <div>
-            <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+            <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-2">
               Status merchant
             </p>
             <div class="flex gap-2">
@@ -624,7 +624,7 @@ onMounted(load);
               <Button variant="outline" size="sm" @click="openEdit">
                 <Pencil class="size-3.5" /> Edit
               </Button>
-              <Button variant="ghost" size="sm" class="text-muted-foreground hover:text-destructive" @click="deleteMerchant">
+              <Button variant="ghost" size="sm" class="text-base-content/60 hover:text-error" @click="deleteMerchant">
                 <Trash2 class="size-3.5" /> Hapus merchant
               </Button>
             </div>
@@ -638,7 +638,7 @@ onMounted(load);
             <Smartphone class="size-4 text-primary" />
             <h2 class="font-display text-2xl italic">Callback Macrodroid</h2>
           </div>
-          <p class="text-xs text-muted-foreground mb-4">
+          <p class="text-xs text-base-content/60 mb-4">
             Konfigurasi pendeteksi notifikasi per-merchant. Tiap merchant punya
             URL &amp; token sendiri — hanya cocokkan transaksi merchant ini.
           </p>
@@ -650,7 +650,7 @@ onMounted(load);
               <Label class="text-xs uppercase tracking-wider">URL Callback</Label>
               <div class="flex gap-2">
                 <code
-                  class="flex-1 font-mono text-[11px] bg-muted/40 border border-border rounded px-2.5 py-2 break-all leading-relaxed"
+                  class="flex-1 font-mono text-[11px] bg-base-200 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed"
                 >{{ callbackUrl }}</code>
                 <Button
                   variant="ghost"
@@ -662,7 +662,7 @@ onMounted(load);
                   <Copy class="size-3.5" />
                 </Button>
               </div>
-              <p class="text-[11px] text-muted-foreground">
+              <p class="text-[11px] text-base-content/60">
                 URL ini yang dipakai Macrodroid. Base = <code class="font-mono">APP_URL</code> di env backend.
               </p>
             </div>
@@ -673,9 +673,9 @@ onMounted(load);
               <div class="flex items-center justify-between gap-2">
                 <code
                   v-if="merchant.callbackToken"
-                  class="font-mono text-xs break-all bg-muted/40 border border-border rounded px-2 py-1 flex-1"
+                  class="font-mono text-xs break-all bg-base-200 border border-base-300 rounded px-2 py-1 flex-1"
                 >{{ merchant.callbackToken }}</code>
-                <span v-else class="text-xs text-muted-foreground italic">
+                <span v-else class="text-xs text-base-content/60 italic">
                   Belum dibuat — klik Rotasi untuk generate.
                 </span>
                 <div class="flex gap-1 shrink-0">
@@ -694,18 +694,18 @@ onMounted(load);
                   </Button>
                 </div>
               </div>
-              <p class="text-[11px] text-muted-foreground">
+              <p class="text-[11px] text-base-content/60">
                 Kirim sebagai header <code class="font-mono">X-Callback-Token</code>
                 di setiap HTTP POST ke URL callback.
               </p>
             </div>
 
             <!-- Setup snippet -->
-            <div class="rounded-md border border-border bg-muted/20 p-4">
-              <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+            <div class="rounded-md border border-base-300 bg-base-200 p-4">
+              <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-2">
                 Setup singkat Macrodroid
               </p>
-              <ol class="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4 leading-relaxed">
+              <ol class="text-xs text-base-content/60 space-y-1.5 list-decimal pl-4 leading-relaxed">
                 <li>
                   Trigger: <strong>Notification received</strong> → pilih
                   e-wallet / m-banking merchant ini.

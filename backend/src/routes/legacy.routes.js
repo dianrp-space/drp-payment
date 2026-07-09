@@ -3,10 +3,14 @@ import multer from "multer";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { decodeQRFromImage } from "../utils/qris-image.js";
 import { generateDynamicQRIS, renderQrisImage } from "../utils/qris-builder.js";
+import { assertSafeFetchUrl } from "../utils/ssrf.js";
 import { badRequest } from "../utils/errors.js";
 
 export const legacyRouter = Router();
-const upload = multer();
+// Batasi upload: 2MB, field tunggal "file".
+const upload = multer({
+  limits: { fileSize: 2 * 1024 * 1024, fields: 5, files: 1 },
+});
 
 /**
  * Legacy endpoint kept for backward compatibility.
@@ -87,9 +91,13 @@ legacyRouter.post(
   asyncHandler(async (req, res) => {
     const { imageUrl } = req.body;
     if (!imageUrl) throw badRequest("Missing imageUrl");
+    assertSafeFetchUrl(imageUrl);
     const r = await fetch(imageUrl);
     if (!r.ok) throw badRequest("Failed to fetch image from URL");
     const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > 2 * 1024 * 1024) {
+      throw badRequest("Image too large (max 2MB)");
+    }
     const qris = await decodeQRFromImage(buf);
     res.json({ qris });
   })

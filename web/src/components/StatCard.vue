@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Card } from "@/components/ui/card";
-
 defineProps<{
   label: string;
   value: string | number;
@@ -11,18 +9,16 @@ defineProps<{
 </script>
 
 <template>
-  <Card class="p-6 flex flex-col gap-1 bg-card border-border">
-    <p
-      class="text-[11px] uppercase tracking-[0.12em] text-muted-foreground font-medium"
-    >
+  <div class="card bg-base-100 border border-base-300 p-6 flex flex-col gap-1">
+    <p class="text-[11px] uppercase tracking-[0.12em] text-base-content/60 font-medium">
       {{ label }}
     </p>
     <div class="flex items-baseline gap-2 mt-1">
       <span class="font-display text-4xl tabular-nums">{{ value }}</span>
-      <span v-if="trend" class="text-xs text-muted-foreground">{{ trend }}</span>
+      <span v-if="trend" class="text-xs text-base-content/60">{{ trend }}</span>
     </div>
-    <p v-if="hint" class="text-xs text-muted-foreground mt-1 font-mono">
+    <p v-if="hint" class="text-xs text-base-content/60 mt-1 font-mono">
       {{ hint }}
     </p>
-  </Card>
+  </div>
 </template>

@@ -216,6 +216,39 @@ export async function listAuditLogs(query) {
   };
 }
 
+/**
+ * Hapus audit log yang lebih lama dari X hari.
+ * @param {number} days - hapus log yang createdAt < (now - days)
+ * @returns {Promise<{ deleted: number, cutoff: Date }>}
+ */
+export async function deleteAuditLogsOlderThan(days) {
+  const n = Math.trunc(Number(days));
+  if (!Number.isFinite(n) || n < 1) {
+    throw badRequest("Days harus angka positif (min 1)");
+  }
+  const cutoff = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+  const result = await prisma.apiLog.deleteMany({
+    where: { createdAt: { lt: cutoff } },
+  });
+  return { deleted: result.count, cutoff };
+}
+
+/**
+ * Statistik ringkas audit log: total, tertua, terbaru.
+ */
+export async function getAuditLogStats() {
+  const [total, oldest, newest] = await Promise.all([
+    prisma.apiLog.count(),
+    prisma.apiLog.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
+    prisma.apiLog.findFirst({ orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+  ]);
+  return {
+    total,
+    oldest: oldest?.createdAt ?? null,
+    newest: newest?.createdAt ?? null,
+  };
+}
+
 // ---- Serializers (admin view: includes merchantName) ----
 
 function serializeAdminTransaction(t) {

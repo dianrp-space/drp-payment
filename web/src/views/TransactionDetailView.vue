@@ -89,7 +89,7 @@ function attemptIcon(success: boolean | null) {
   <div class="p-6 md:p-10 max-w-5xl mx-auto">
     <RouterLink
       to="/transactions"
-      class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
+      class="inline-flex items-center gap-1.5 text-sm text-base-content/60 hover:text-base-content mb-6"
     >
       <ArrowLeft class="size-4" /> Kembali ke daftar
     </RouterLink>
@@ -103,23 +103,23 @@ function attemptIcon(success: boolean | null) {
       </div>
     </template>
 
-    <div v-else-if="error" class="text-destructive">{{ error }}</div>
+    <div v-else-if="error" class="text-error">{{ error }}</div>
 
     <template v-else-if="tx">
       <header class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <div class="flex items-center gap-3 mb-2">
             <StatusBadge :status="tx.status" />
-            <span class="text-[11px] text-muted-foreground font-mono">
+            <span class="text-[11px] text-base-content/60 font-mono">
               {{ tx.transactionId }}
             </span>
           </div>
           <h1 class="font-display text-4xl italic">{{ tx.referenceId }}</h1>
-          <p class="text-sm text-muted-foreground mt-1">
+          <p class="text-sm text-base-content/60 mt-1">
             Dibuat {{ relativeTime(tx.createdAt) }} ·
             <RouterLink
               :to="`/merchants/${tx.merchant.id}`"
-              class="hover:text-foreground underline underline-offset-2"
+              class="hover:text-base-content underline underline-offset-2"
               >{{ tx.merchant.name }}</RouterLink
             >
           </p>
@@ -129,13 +129,13 @@ function attemptIcon(success: boolean | null) {
       <div class="grid gap-4 md:grid-cols-3">
         <!-- QR + nominal -->
         <Card class="p-6 flex flex-col items-center text-center">
-          <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-3">
+          <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-3">
             Nominal harus dibayar
           </p>
           <p class="font-display text-4xl italic text-primary mb-4">
             {{ formatIDR(tx.totalAmount) }}
           </p>
-          <div class="bg-white p-2 rounded-lg border border-border">
+          <div class="bg-white p-2 rounded-lg border border-base-300">
             <img
               :src="tx.qrisImageBase64"
               :alt="`QRIS untuk ${tx.referenceId}`"
@@ -148,7 +148,7 @@ function attemptIcon(success: boolean | null) {
           <p
             v-if="tx.status === 'PENDING'"
             class="text-[11px] mt-3 font-mono"
-            :class="expiry.past ? 'text-destructive' : 'text-muted-foreground'"
+            :class="expiry.past ? 'text-error' : 'text-base-content/60'"
           >
             <template v-if="expiry.past">
               Lewat batas waktu · menunggu konfirmasi expired
@@ -163,13 +163,13 @@ function attemptIcon(success: boolean | null) {
         <Card class="p-6 md:col-span-2">
           <h2 class="font-display text-2xl italic mb-4">Rincian</h2>
           <dl class="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
-            <dt class="text-muted-foreground">Nominal dasar</dt>
+            <dt class="text-base-content/60">Nominal dasar</dt>
             <dd class="font-mono text-right tabular-nums">{{ formatIDR(tx.amount) }}</dd>
 
-            <dt class="text-muted-foreground">Fee</dt>
+            <dt class="text-base-content/60">Fee</dt>
             <dd class="font-mono text-right tabular-nums">{{ formatIDR(tx.fee) }}</dd>
 
-            <dt class="text-muted-foreground">Unique digit</dt>
+            <dt class="text-base-content/60">Unique digit</dt>
             <dd class="font-mono text-right tabular-nums text-primary">+{{ tx.uniqueDigit }}</dd>
 
             <Separator class="col-span-2 my-1" />
@@ -177,20 +177,20 @@ function attemptIcon(success: boolean | null) {
             <dt class="font-medium">Total</dt>
             <dd class="font-mono text-right tabular-nums font-semibold">{{ formatIDR(tx.totalAmount) }}</dd>
 
-            <dt class="text-muted-foreground">Dibayar</dt>
+            <dt class="text-base-content/60">Dibayar</dt>
             <dd class="font-mono text-right tabular-nums">
               {{ tx.paidAmount != null ? formatIDR(tx.paidAmount) : "—" }}
             </dd>
 
-            <dt class="text-muted-foreground">Sumber matched</dt>
+            <dt class="text-base-content/60">Sumber matched</dt>
             <dd class="font-mono text-right">{{ tx.matchedBy ?? "—" }}</dd>
 
-            <dt class="text-muted-foreground">Waktu bayar</dt>
+            <dt class="text-base-content/60">Waktu bayar</dt>
             <dd class="font-mono text-right">
               {{ tx.paidAt ? formatDateTime(tx.paidAt) : "—" }}
             </dd>
 
-            <dt class="text-muted-foreground">Kedaluwarsa</dt>
+            <dt class="text-base-content/60">Kedaluwarsa</dt>
             <dd class="font-mono text-right">{{ formatDateTime(tx.expiresAt) }}</dd>
           </dl>
 
@@ -198,7 +198,7 @@ function attemptIcon(success: boolean | null) {
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <p class="text-[11px] uppercase tracking-wider text-muted-foreground">
+              <p class="text-[11px] uppercase tracking-wider text-base-content/60">
                 String QRIS
               </p>
               <Button variant="ghost" size="sm" @click="copy(tx.qrisString)">
@@ -206,7 +206,7 @@ function attemptIcon(success: boolean | null) {
               </Button>
             </div>
             <pre
-              class="text-[11px] font-mono bg-muted/40 border border-border rounded p-3 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed"
+              class="text-[11px] font-mono bg-base-200 border border-base-300 rounded p-3 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed"
             >{{ tx.qrisString }}</pre>
           </div>
         </Card>
@@ -217,7 +217,7 @@ function attemptIcon(success: boolean | null) {
         <div class="flex items-center justify-between mb-4">
           <div>
             <h2 class="font-display text-2xl italic">Pengiriman webhook</h2>
-            <p class="text-xs text-muted-foreground mt-0.5">
+            <p class="text-xs text-base-content/60 mt-0.5">
               Webhook URL: <span class="font-mono">{{ tx.merchant.webhookUrl ?? "—" }}</span>
             </p>
           </div>
@@ -237,10 +237,10 @@ function attemptIcon(success: boolean | null) {
           </div>
         </div>
 
-        <div v-if="!tx.webhookLogs.length" class="text-sm text-muted-foreground py-4">
+        <div v-if="!tx.webhookLogs.length" class="text-sm text-base-content/60 py-4">
           Belum ada upaya pengiriman webhook.
         </div>
-        <ul v-else class="divide-y divide-border">
+        <ul v-else class="divide-y divide-base-300">
           <li
             v-for="log in tx.webhookLogs"
             :key="log.id"
@@ -253,8 +253,8 @@ function attemptIcon(success: boolean | null) {
                 log.success
                   ? 'text-success'
                   : log.success === false
-                    ? 'text-destructive'
-                    : 'text-muted-foreground'
+                    ? 'text-error'
+                    : 'text-base-content/60'
               "
             />
             <div class="flex-1 min-w-0">
@@ -262,18 +262,18 @@ function attemptIcon(success: boolean | null) {
                 <span class="text-sm font-medium">
                   Upaya #{{ log.attempt }} · {{ log.eventType }}
                 </span>
-                <span class="text-xs font-mono text-muted-foreground">
+                <span class="text-xs font-mono text-base-content/60">
                   HTTP {{ log.statusCode ?? "—" }} · {{ relativeTime(log.createdAt) }}
                 </span>
               </div>
-              <p v-if="log.errorMessage" class="text-xs text-destructive mt-1 font-mono">
+              <p v-if="log.errorMessage" class="text-xs text-error mt-1 font-mono">
                 {{ log.errorMessage }}
               </p>
               <details v-if="log.responseBody" class="mt-1">
-                <summary class="text-[11px] text-muted-foreground cursor-pointer hover:text-foreground">
+                <summary class="text-[11px] text-base-content/60 cursor-pointer hover:text-base-content">
                   Lihat response body
                 </summary>
-                <pre class="text-[11px] font-mono mt-2 bg-muted/40 border border-border rounded p-2 overflow-x-auto">{{ log.responseBody }}</pre>
+                <pre class="text-[11px] font-mono mt-2 bg-base-200 border border-base-300 rounded p-2 overflow-x-auto">{{ log.responseBody }}</pre>
               </details>
             </div>
           </li>

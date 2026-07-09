@@ -27,6 +27,7 @@ export const useAuthStore = defineStore("auth", () => {
       userEmail.value = null;
       userName.value = null;
       verified.value = false;
+      console.error("[auth] verifyToken gagal setelah login:", e);
       throw e;
     } finally {
       verifying.value = false;

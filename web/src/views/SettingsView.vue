@@ -221,7 +221,7 @@ onMounted(async () => {
 <template>
   <div class="p-6 md:p-10 max-w-3xl mx-auto">
     <header class="mb-8">
-      <p class="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
+      <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/60 mb-2">
         Sistem
       </p>
       <h1 class="font-display text-4xl italic">Pengaturan</h1>
@@ -232,7 +232,7 @@ onMounted(async () => {
       <div class="flex items-start justify-between gap-4 mb-1">
         <div>
           <h2 class="font-display text-2xl italic">Branding</h2>
-          <p class="text-xs text-muted-foreground mt-1">
+          <p class="text-xs text-base-content/60 mt-1">
             Ubah nama app, logo, dan favicon. Berlaku untuk seluruh konsol.
           </p>
         </div>
@@ -251,7 +251,7 @@ onMounted(async () => {
             :placeholder="DEFAULT_APP_NAME"
             :disabled="saving"
           />
-          <p class="text-[11px] text-muted-foreground">
+          <p class="text-[11px] text-base-content/60">
             Kosongkan untuk kembalikan ke default
             <span class="font-mono">{{ DEFAULT_APP_NAME }}</span>.
           </p>
@@ -262,7 +262,7 @@ onMounted(async () => {
           <Label class="text-xs uppercase tracking-wider">Logo</Label>
           <div class="flex items-center gap-4">
             <div
-              class="flex items-center justify-center size-16 rounded-md border border-border bg-muted/30 overflow-hidden shrink-0"
+              class="flex items-center justify-center size-16 rounded-md border border-base-300 bg-base-200/30 overflow-hidden shrink-0"
             >
               <img
                 v-if="logoPreview"
@@ -270,7 +270,7 @@ onMounted(async () => {
                 alt="logo preview"
                 class="h-full w-full object-contain"
               />
-              <ImageIcon v-else class="size-6 text-muted-foreground/50" />
+              <ImageIcon v-else class="size-6 text-base-content/60/50" />
             </div>
             <div class="flex flex-col gap-2">
               <div class="flex gap-2">
@@ -288,14 +288,14 @@ onMounted(async () => {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  class="text-muted-foreground hover:text-destructive"
+                  class="text-base-content/60 hover:text-error"
                   :disabled="saving"
                   @click="clearLogo"
                 >
                   <X class="size-3.5" /> Hapus
                 </Button>
               </div>
-              <p class="text-[11px] text-muted-foreground">
+              <p class="text-[11px] text-base-content/60">
                 PNG/SVG/JPG · kotak · maks ~375KB. Kosongkan = pakai ikon default.
               </p>
               <input
@@ -315,7 +315,7 @@ onMounted(async () => {
           <Label class="text-xs uppercase tracking-wider">Favicon</Label>
           <div class="flex items-center gap-4">
             <div
-              class="flex items-center justify-center size-10 rounded-md border border-border bg-muted/30 overflow-hidden shrink-0"
+              class="flex items-center justify-center size-10 rounded-md border border-base-300 bg-base-200/30 overflow-hidden shrink-0"
             >
               <img
                 v-if="faviconPreview"
@@ -323,7 +323,7 @@ onMounted(async () => {
                 alt="favicon preview"
                 class="h-full w-full object-contain"
               />
-              <ImageIcon v-else class="size-4 text-muted-foreground/50" />
+              <ImageIcon v-else class="size-4 text-base-content/60/50" />
             </div>
             <div class="flex flex-col gap-2">
               <div class="flex flex-wrap gap-2">
@@ -351,14 +351,14 @@ onMounted(async () => {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  class="text-muted-foreground hover:text-destructive"
+                  class="text-base-content/60 hover:text-error"
                   :disabled="saving"
                   @click="clearFavicon"
                 >
                   <X class="size-3.5" /> Hapus
                 </Button>
               </div>
-              <p class="text-[11px] text-muted-foreground">
+              <p class="text-[11px] text-base-content/60">
                 SVG/PNG/ICO · bujur · maks ~375KB. Kosongkan = pakai
                 <span class="font-mono">/favicon.svg</span> default.
               </p>
@@ -397,7 +397,7 @@ onMounted(async () => {
       <div class="flex items-start justify-between gap-4 mb-1">
         <div>
           <h2 class="font-display text-2xl italic">Akun</h2>
-          <p class="text-xs text-muted-foreground mt-1">
+          <p class="text-xs text-base-content/60 mt-1">
             Ubah email atau password admin.
           </p>
         </div>
@@ -466,21 +466,21 @@ onMounted(async () => {
 
     <Card class="p-6">
       <h2 class="font-display text-2xl italic mb-1">Tentang</h2>
-      <p class="text-xs text-muted-foreground mb-4">
+      <p class="text-xs text-base-content/60 mb-4">
         {{ branding.appName }} · QRIS-only console.
       </p>
       <Separator class="mb-4" />
       <dl class="text-sm space-y-2 font-mono text-xs">
         <div class="flex justify-between">
-          <dt class="text-muted-foreground">Versi</dt>
+          <dt class="text-base-content/60">Versi</dt>
           <dd>v2.0.0</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-muted-foreground">Stack</dt>
+          <dt class="text-base-content/60">Stack</dt>
           <dd>Node · Vue 3 · Prisma · Postgres</dd>
         </div>
         <div class="flex justify-between">
-          <dt class="text-muted-foreground">Pemilik</dt>
+          <dt class="text-base-content/60">Pemilik</dt>
           <dd>DRP Network Solutions</dd>
         </div>
       </dl>

@@ -63,3 +63,18 @@ export const listAuditLogs = asyncHandler(async (req, res) => {
   const result = await adminService.listAuditLogs(query);
   res.json(result);
 });
+
+const cleanupSchema = z.object({
+  days: z.coerce.number().int().min(1).max(3650),
+});
+
+export const cleanupAuditLogs = asyncHandler(async (req, res) => {
+  const { days } = cleanupSchema.parse(req.body);
+  const result = await adminService.deleteAuditLogsOlderThan(days);
+  res.json(result);
+});
+
+export const getAuditStats = asyncHandler(async (_req, res) => {
+  const stats = await adminService.getAuditLogStats();
+  res.json(stats);
+});

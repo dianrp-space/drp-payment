@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "../../middlewares/auth.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import * as appSettingService from "../../services/app-setting.service.js";
+import { rescheduleAuditCleanup } from "../../jobs/index.js";
 
 const router = Router();
 
@@ -22,6 +23,12 @@ const updateSchema = z.object({
     .regex(DATA_URL_RE, "faviconBase64 harus data URL gambar")
     .nullable()
     .optional(),
+});
+
+const auditCleanupSchema = z.object({
+  enabled: z.boolean().optional(),
+  retentionDays: z.coerce.number().int().min(1).max(3650).optional(),
+  intervalHours: z.coerce.number().int().min(1).max(168).optional(),
 });
 
 /**
@@ -98,6 +105,29 @@ router.patch(
     const data = updateSchema.parse(req.body);
     const branding = await appSettingService.updateBranding(data);
     res.json({ branding });
+  })
+);
+
+// ---- Audit log auto-cleanup settings ----
+
+router.get(
+  "/settings/audit-cleanup",
+  requireAdmin,
+  asyncHandler(async (_req, res) => {
+    const settings = await appSettingService.getAuditCleanupSettings();
+    res.json({ settings });
+  })
+);
+
+router.patch(
+  "/settings/audit-cleanup",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const data = auditCleanupSchema.parse(req.body);
+    const settings = await appSettingService.updateAuditCleanupSettings(data);
+    // Re-register cron job dengan interval baru (no restart needed).
+    await rescheduleAuditCleanup();
+    res.json({ settings });
   })
 );
 

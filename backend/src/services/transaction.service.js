@@ -12,6 +12,11 @@ import {
 const DEFAULT_CURRENCY_NOTE =
   "amount must be a positive integer IDR value (e.g. 10000)";
 
+// Prisma error code untuk unique constraint violation.
+const PRISMA_UNIQUE_VIOLATION = "P2002";
+// Max retry kalau race condition pada unique index totalAmount (PENDING).
+const UNIQUE_DIGIT_MAX_RETRIES = 3;
+
 /** Validate amount is a positive integer within sane bounds. */
 function validateAmount(amount) {
   const n = Math.trunc(Number(amount));
@@ -58,34 +63,73 @@ export async function createTransaction(merchant, input) {
 
   // Generate unique digit agar totalAmount unik global di antara PENDING
   const baseAmount = amount + fee;
-  const uniqueDigit = await pickUniqueDigit(baseAmount);
-  const totalAmount = baseAmount + uniqueDigit;
 
-  // Render QRIS dinamis dari static merchant
-  const qrisString = generateDynamicQRIS(merchant.staticQris, totalAmount);
-  const qrisImageBase64 = await renderQrisImage(qrisString, env.QR_IMAGE_FORMAT);
+  // Render & persist dengan retry jika race condition pada unique index
+  // (Transaction_totalAmount_pending_unique). pickUniqueDigit cek di memori,
+  // jadi dua request konkuren bisa dapat digit sama; DB index yang jadi pengawal.
+  let transaction = null;
+  let lastErr = null;
+  for (let attempt = 0; attempt < UNIQUE_DIGIT_MAX_RETRIES; attempt++) {
+    const uniqueDigit = await pickUniqueDigit(baseAmount);
+    const totalAmount = baseAmount + uniqueDigit;
+    const qrisString = generateDynamicQRIS(merchant.staticQris, totalAmount);
+    const qrisImageBase64 = await renderQrisImage(qrisString, env.QR_IMAGE_FORMAT);
 
-  const expiresInMinutes = Math.max(
-    1,
-    Math.trunc(Number(input.expiresInMinutes ?? env.DEFAULT_EXPIRY_MINUTES))
+    const expiresInMinutes = Math.max(
+      1,
+      Math.trunc(Number(input.expiresInMinutes ?? env.DEFAULT_EXPIRY_MINUTES))
+    );
+    const expiresAt = new Date(Date.now() + expiresInMinutes * 60_000);
+
+    try {
+      transaction = await prisma.transaction.create({
+        data: {
+          merchantId: merchant.id,
+          referenceId,
+          amount,
+          fee,
+          uniqueDigit,
+          totalAmount,
+          qrisString,
+          qrisImageBase64,
+          expiresAt,
+        },
+      });
+      return { transaction, created: true };
+    } catch (e) {
+      // P2002 pada unique index totalAmount = race; retry dengan digit lain.
+      if (
+        e?.code === PRISMA_UNIQUE_VIOLATION &&
+        e?.meta?.target?.includes("totalAmount")
+      ) {
+        lastErr = e;
+        continue;
+      }
+      // P2002 pada merchantId_referenceId = idempotency race; treat as existing.
+      if (
+        e?.code === PRISMA_UNIQUE_VIOLATION &&
+        e?.meta?.target?.includes("referenceId")
+      ) {
+        const existing = await prisma.transaction.findUnique({
+          where: {
+            merchantId_referenceId: { merchantId: merchant.id, referenceId },
+          },
+        });
+        if (existing && existing.status === "PENDING") {
+          return { transaction: existing, created: false };
+        }
+        throw conflict(
+          `Transaction with referenceId '${referenceId}' already ${existing?.status ?? "exists"}`
+        );
+      }
+      throw e;
+    }
+  }
+
+  // Semua retry habis — kemungkinan kasus ekstrem (banyak transaksi PENDING sekaligus).
+  throw conflict(
+    "Gagal membuat transaksi: kapasitas unique digit penuh untuk nominal ini. Coba lagi sebentar."
   );
-  const expiresAt = new Date(Date.now() + expiresInMinutes * 60_000);
-
-  const transaction = await prisma.transaction.create({
-    data: {
-      merchantId: merchant.id,
-      referenceId,
-      amount,
-      fee,
-      uniqueDigit,
-      totalAmount,
-      qrisString,
-      qrisImageBase64,
-      expiresAt,
-    },
-  });
-
-  return { transaction, created: true };
 }
 
 /**

@@ -6,8 +6,8 @@ import type { Branding } from "@/types";
 const DEFAULT_APP_NAME = "DRP Payment Gateway";
 const DEFAULT_APP_URL =
   typeof window !== "undefined"
-    ? (import.meta.env.VITE_GATEWAY_URL ?? "http://localhost:8080")
-    : "http://localhost:8080";
+    ? (import.meta.env.VITE_GATEWAY_URL ?? "http://localhost:8081")
+    : "http://localhost:8081";
 const DEFAULT_LOGO_SRC = "/drp-payment.webp";
 const DEFAULT_FAVICON_HREF = "/drp-payment.webp";
 

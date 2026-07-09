@@ -16,9 +16,9 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-background text-foreground">
+  <div class="min-h-screen flex bg-base-100 text-base-content">
     <AppSidebar />
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 min-h-screen">
       <AppHeader @logout="handleLogout" />
       <main class="flex-1 overflow-y-auto">
         <RouterView v-slot="{ Component }">

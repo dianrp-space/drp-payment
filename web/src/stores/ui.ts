@@ -19,6 +19,7 @@ function getInitial(): ThemeMode {
 
 function apply(mode: ThemeMode): void {
   const root = document.documentElement;
+  root.setAttribute("data-theme", mode === "dark" ? "drp-dark" : "drp");
   if (mode === "dark") root.classList.add("dark");
   else root.classList.remove("dark");
 }

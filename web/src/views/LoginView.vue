@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { toast } from "vue-sonner";
 import { Loader2, ArrowRight, Mail, Lock, QrCode } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +42,13 @@ onMounted(() => {
 
 async function handleSubmit() {
   if (!email.value.trim() || !password.value) {
-    toast.error("Email dan password wajib diisi");
+    Swal.fire({
+      icon: "warning",
+      title: "Email dan password wajib diisi",
+      timer: 2500,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    });
     return;
   }
   loading.value = true;
@@ -59,15 +64,58 @@ async function handleSubmit() {
     const redirect = (route.query.redirect as string) || "/";
     router.replace(redirect);
   } catch (e) {
-    const msg =
-      e instanceof HttpError
-        ? e.status === 0
-          ? "Tidak bisa terhubung ke server"
-          : e.status === 401
-            ? "Email atau password salah"
-            : e.message
-        : "Login gagal";
-    toast.error(msg);
+    console.error("[login] error:", e);
+    let title = "Login gagal";
+    let detail = "";
+
+    if (e instanceof HttpError) {
+      switch (e.status) {
+        case 0:
+          title = "Tidak bisa terhubung ke server";
+          detail = "Pastikan server backend sedang berjalan dan dapat diakses.";
+          break;
+        case 400:
+          title = "Input tidak valid";
+          detail = e.message || "Periksa kembali email dan password.";
+          break;
+        case 401:
+          title = "Email atau password salah";
+          detail = "Periksa kembali kredensial yang Anda masukkan.";
+          break;
+        case 403:
+          title = "Akses ditolak";
+          detail = e.message || "Akun Anda tidak memiliki izin.";
+          break;
+        case 404:
+          title = "Endpoint login tidak ditemukan";
+          detail = "Server mungkin menjalankan versi yang tidak kompatibel.";
+          break;
+        case 429:
+          title = "Terlalu banyak percobaan";
+          detail = e.message || "Coba lagi dalam 15 menit.";
+          break;
+        case 500:
+        case 502:
+        case 503:
+          title = "Server bermasalah";
+          detail = e.message || "Terjadi kesalahan di sisi server. Coba lagi nanti.";
+          break;
+        default:
+          title = `Login gagal (HTTP ${e.status})`;
+          detail = e.message || "";
+      }
+    } else if (e instanceof Error) {
+      title = "Terjadi kesalahan";
+      detail = e.message;
+    }
+
+    Swal.fire({
+      icon: "error",
+      title,
+      text: detail || undefined,
+      confirmButtonText: "OK",
+      confirmButtonColor: "var(--primary)",
+    });
   } finally {
     loading.value = false;
   }
@@ -75,7 +123,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen grid md:grid-cols-2 bg-background">
+  <div class="min-h-screen grid md:grid-cols-2 bg-base-100">
     <!-- Left: form -->
     <div class="flex items-center justify-center px-6 py-12">
       <div class="w-full max-w-sm">
@@ -98,13 +146,13 @@ async function handleSubmit() {
                 shortName
               }}</span>
               <span
-                class="text-[10px] text-muted-foreground uppercase tracking-[0.2em]"
+                class="text-[10px] text-base-content/60 uppercase tracking-[0.2em]"
                 >{{ subtitle }}</span
               >
             </span>
           </RouterLink>
           <h1 class="font-display text-3xl italic mb-2">Masuk ke konsol</h1>
-          <p class="text-sm text-muted-foreground leading-relaxed">
+          <p class="text-sm text-base-content/60 leading-relaxed">
             Akses dashboard untuk mengelola merchant, memantau transaksi,
             dan mengatur pengaturan payment gateway.
           </p>
@@ -117,7 +165,7 @@ async function handleSubmit() {
             </Label>
             <div class="relative">
               <Mail
-                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
+                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-base-content/60 pointer-events-none"
               />
               <Input
                 id="email"
@@ -137,7 +185,7 @@ async function handleSubmit() {
             </Label>
             <div class="relative">
               <Lock
-                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
+                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-base-content/60 pointer-events-none"
               />
               <Input
                 id="password"
@@ -163,8 +211,8 @@ async function handleSubmit() {
           </Button>
         </form>
 
-        <div class="mt-10 pt-6 border-t border-border">
-          <p class="text-[11px] text-muted-foreground/70 font-mono leading-relaxed">
+        <div class="mt-10 pt-6 border-t border-base-300">
+          <p class="text-[11px] text-base-content/60 font-mono leading-relaxed">
             Sesi token disimpan di localStorage browser. Keluar untuk
             menghapusnya dari perangkat ini.
           </p>
@@ -174,7 +222,7 @@ async function handleSubmit() {
 
     <!-- Right: brand panel -->
     <div
-      class="hidden md:flex relative overflow-hidden bg-primary text-primary-foreground"
+      class="hidden md:flex relative overflow-hidden bg-primary text-primary-content"
     >
       <div
         class="absolute inset-0 opacity-[0.08]"
@@ -194,7 +242,7 @@ async function handleSubmit() {
           Sebuah<BR />buku besar,<br />
           <span class="opacity-60">modern.</span>
         </p>
-        <Separator class="my-6 bg-primary-foreground/20" />
+        <Separator class="my-6 bg-primary-content/20" />
         <p class="text-sm opacity-80 leading-relaxed">
           Catat setiap transaksi QRIS. Lacak status real-time. Kirim webhook
           bertanda tangan ke merchant. Tanpa perantara.

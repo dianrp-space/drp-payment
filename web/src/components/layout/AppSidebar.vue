@@ -56,14 +56,14 @@ const asideClass = computed(() =>
 <template>
   <aside
     :class="[
-      'hidden md:flex shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-border transition-[width] duration-200 ease-in-out',
+      'hidden md:flex shrink-0 flex-col bg-base-200 text-base-content border-r border-base-300 transition-[width] duration-200 ease-in-out',
       asideClass,
     ]"
   >
     <!-- Brand row -->
     <div
       :class="[
-        'flex items-center border-b border-border h-14 shrink-0',
+        'flex items-center border-b border-base-300 h-14 shrink-0',
         ui.sidebarCollapsed ? 'justify-center px-2' : 'gap-2 px-4',
       ]"
     >
@@ -103,8 +103,8 @@ const asideClass = computed(() =>
           'flex items-center gap-3 rounded-md text-sm transition-colors',
           ui.sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-3 py-2',
           isActive(item.to)
-            ? 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
-            : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            ? 'bg-primary text-primary-content font-medium'
+            : 'text-base-content/80 hover:bg-base-300 hover:text-base-content',
         ]"
         :title="ui.sidebarCollapsed ? item.label : undefined"
       >
@@ -115,13 +115,13 @@ const asideClass = computed(() =>
 
     <!-- Collapse toggle (bottom) -->
     <div
-      class="border-t border-border p-2 flex"
+      class="border-t border-base-300 p-2 flex"
       :class="ui.sidebarCollapsed ? 'justify-center' : 'justify-end'"
     >
       <Button
         variant="ghost"
         size="icon"
-        class="size-7 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+        class="size-7 text-base-content/60 hover:text-base-content hover:bg-base-300"
         @click="ui.toggleSidebarCollapsed()"
         :aria-label="ui.sidebarCollapsed ? 'Buka sidebar' : 'Tutup sidebar'"
         :title="ui.sidebarCollapsed ? 'Buka sidebar' : 'Tutup sidebar'"
@@ -163,8 +163,8 @@ const asideClass = computed(() =>
           class="flex items-center gap-3 px-3 py-2 rounded-md text-sm"
           :class="
             isActive(item.to)
-              ? 'bg-primary text-primary-foreground font-medium'
-              : 'hover:bg-sidebar-accent'
+              ? 'bg-primary text-primary-content font-medium'
+              : 'hover:bg-base-300'
           "
           @click="ui.closeSidebar()"
         >

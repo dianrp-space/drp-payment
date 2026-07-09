@@ -78,15 +78,15 @@ const statusBreakdown = computed(() => {
     <header class="mb-8 flex items-end justify-between gap-4">
       <div>
         <p
-          class="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-2"
+          class="text-[11px] uppercase tracking-[0.15em] text-base-content/60 mb-2"
         >
-          Ringkasan
+          Dashboard
         </p>
         <h1 class="font-display text-4xl italic">
           {{ greeting }}, <span class="text-primary">{{ auth.userName ?? "owner" }}</span>.
         </h1>
-        <p class="text-sm text-muted-foreground mt-2">
-          Yang terjadi pada payment gateway hari ini.
+        <p class="text-sm text-base-content/60 mt-2">
+          Ringkasan pada QRIS payment gateway.
         </p>
       </div>
       <Button variant="outline" size="sm" @click="load" :disabled="loading">
@@ -126,7 +126,7 @@ const statusBreakdown = computed(() => {
       </template>
     </div>
 
-    <div v-if="error" class="text-destructive text-sm mb-6">{{ error }}</div>
+    <div v-if="error" class="text-error text-sm mb-6">{{ error }}</div>
 
     <div class="grid gap-6 lg:grid-cols-3">
       <!-- Status breakdown (2/3) -->
@@ -135,7 +135,7 @@ const statusBreakdown = computed(() => {
           <h2 class="font-display text-2xl italic">Transaksi per status</h2>
           <RouterLink
             to="/transactions"
-            class="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            class="text-xs text-base-content/60 hover:text-base-content flex items-center gap-1"
           >
             Lihat semua <ArrowUpRight class="size-3" />
           </RouterLink>
@@ -144,11 +144,11 @@ const statusBreakdown = computed(() => {
           <div
             v-for="s in statusBreakdown"
             :key="s.key"
-            class="border border-border rounded-lg p-4 flex flex-col gap-1"
+            class="border border-base-300 rounded-lg p-4 flex flex-col gap-1"
           >
             <div class="flex items-center justify-between">
               <span
-                class="text-[11px] uppercase tracking-wider text-muted-foreground"
+                class="text-[11px] uppercase tracking-wider text-base-content/60"
                 >{{ s.label }}</span
               >
               <StatusBadge :status="s.key" />
@@ -156,7 +156,7 @@ const statusBreakdown = computed(() => {
             <p class="font-display text-3xl tabular-nums">
               {{ formatNumber(s.count) }}
             </p>
-            <p class="text-xs text-muted-foreground font-mono">
+            <p class="text-xs text-base-content/60 font-mono">
               {{ formatIDR(s.volume) }}
             </p>
           </div>
@@ -174,11 +174,11 @@ const statusBreakdown = computed(() => {
           <li
             v-for="tx in stats.recentCreated"
             :key="tx.transactionId"
-            class="py-2.5 border-b border-border/60 last:border-0"
+            class="py-2.5 border-b border-base-300/60 last:border-0"
           >
             <RouterLink
               :to="`/transactions/${tx.transactionId}`"
-              class="block hover:bg-muted/40 -mx-2 px-2 rounded transition-colors"
+              class="block hover:bg-base-200 -mx-2 px-2 rounded transition-colors"
             >
               <div class="flex items-center justify-between gap-2">
                 <span class="text-sm font-medium truncate">{{
@@ -187,7 +187,7 @@ const statusBreakdown = computed(() => {
                 <StatusBadge :status="tx.status" />
               </div>
               <div
-                class="flex items-center justify-between mt-0.5 text-[11px] text-muted-foreground font-mono"
+                class="flex items-center justify-between mt-0.5 text-[11px] text-base-content/60 font-mono"
               >
                 <span>{{ shortId(tx.transactionId, 6) }} · {{ tx.merchantName }}</span>
                 <span>{{ relativeTime(tx.createdAt) }}</span>
@@ -195,7 +195,7 @@ const statusBreakdown = computed(() => {
             </RouterLink>
           </li>
         </ul>
-        <div v-else class="py-10 text-center text-sm text-muted-foreground">
+        <div v-else class="py-10 text-center text-sm text-base-content/60">
           Belum ada transaksi.
         </div>
       </Card>

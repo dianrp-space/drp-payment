@@ -159,6 +159,14 @@ model AppSetting {
   appLogoBase64 String?  @db.Text
   // Favicon sebagai data URL (base64). Dipakai untuk <link rel="icon">.
   faviconBase64 String?  @db.Text
+  // Audit log auto-cleanup: berapa jam interval antar run (default 6 jam).
+  // Null = pakai default (6 jam).
+  auditCleanupIntervalHours Int?
+  // Audit log auto-cleanup: berapa hari log disimpan sebelum dihapus otomatis.
+  // Null = pakai default (30 hari).
+  auditRetentionDays Int?
+  // Audit log auto-cleanup: aktif atau tidak. Null = true (aktif).
+  auditCleanupEnabled Boolean?
   updatedAt     DateTime @updatedAt
 }
 

@@ -210,11 +210,11 @@ onMounted(load);
   <div class="p-6 md:p-10 max-w-6xl mx-auto">
     <header class="mb-8 flex items-end justify-between gap-4">
       <div>
-        <p class="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
+        <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/60 mb-2">
           Tenant
         </p>
         <h1 class="font-display text-4xl italic">Merchant</h1>
-        <p class="text-sm text-muted-foreground mt-2">
+        <p class="text-sm text-base-content/60 mt-2">
           Tiap merchant punya API key &amp; webhook secret sendiri.
         </p>
       </div>
@@ -255,7 +255,7 @@ onMounted(load);
               <Label>QRIS merchant</Label>
               <div v-if="!qrisPreviewUrl" class="flex gap-2">
                 <label
-                  class="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-border rounded-md px-4 py-6 cursor-pointer hover:border-primary/50 transition-colors text-muted-foreground text-sm"
+                  class="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-base-300 rounded-md px-4 py-6 cursor-pointer hover:border-primary/50 transition-colors text-base-content/60 text-sm"
                   :class="{ 'opacity-50 pointer-events-none': creating }"
                 >
                   <Upload class="size-4" />
@@ -268,17 +268,17 @@ onMounted(load);
                     @change="handleQrisFile"
                   />
                 </label>
-                <span class="self-center text-xs text-muted-foreground">atau</span>
+                <span class="self-center text-xs text-base-content/60">atau</span>
               </div>
               <div v-if="qrisPreviewUrl" class="relative inline-flex">
                 <img
                   :src="qrisPreviewUrl"
-                  class="h-32 w-32 object-cover rounded-md border border-border"
+                  class="h-32 w-32 object-cover rounded-md border border-base-300"
                   alt="QRIS preview"
                 />
                 <button
                   type="button"
-                  class="absolute -top-2 -right-2 bg-background border border-border rounded-full p-0.5 shadow-sm hover:bg-muted transition-colors"
+                  class="absolute -top-2 -right-2 bg-base-100 border border-base-300 rounded-full p-0.5 shadow-sm hover:bg-base-300 transition-colors"
                   :disabled="creating"
                   @click="clearQrisImage"
                 >
@@ -322,7 +322,7 @@ onMounted(load);
       </Dialog>
     </header>
 
-    <div v-if="error" class="text-destructive text-sm mb-6">{{ error }}</div>
+    <div v-if="error" class="text-error text-sm mb-6">{{ error }}</div>
 
     <Card class="overflow-hidden">
       <Table>
@@ -338,12 +338,12 @@ onMounted(load);
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading && !merchants.length">
-            <TableCell :colspan="6" class="text-center py-12 text-muted-foreground">
+            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
               <Loader2 class="size-5 animate-spin inline-block" />
             </TableCell>
           </TableRow>
           <TableRow v-else-if="!merchants.length">
-            <TableCell :colspan="6" class="text-center py-12 text-muted-foreground">
+            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
               <Store class="size-6 mx-auto mb-2 opacity-50" />
               Belum ada merchant. Klik <strong>Merchant baru</strong>.
             </TableCell>
@@ -352,7 +352,7 @@ onMounted(load);
             <TableCell>
               <RouterLink :to="`/merchants/${m.id}`" class="block">
                 <div class="font-medium text-sm">{{ m.name }}</div>
-                <div class="text-[11px] text-muted-foreground mt-0.5">
+                <div class="text-[11px] text-base-content/60 mt-0.5">
                   {{ m.email ?? "—" }}
                 </div>
               </RouterLink>
@@ -370,14 +370,14 @@ onMounted(load);
             <TableCell class="text-right font-mono tabular-nums text-sm">
               {{ m._count?.transactions ?? 0 }}
             </TableCell>
-            <TableCell class="text-right text-xs text-muted-foreground font-mono">
+            <TableCell class="text-right text-xs text-base-content/60 font-mono">
               {{ formatDateTime(m.createdAt) }}
             </TableCell>
             <TableCell class="text-right">
               <Button
                 variant="ghost"
                 size="sm"
-                class="text-muted-foreground hover:text-destructive"
+                class="text-base-content/60 hover:text-error"
                 :disabled="deleting === m.id"
                 @click="handleDelete(m.id)"
               >

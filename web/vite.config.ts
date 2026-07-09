@@ -17,12 +17,12 @@ export default defineConfig({
       interval: 300,
     },
     proxy: {
-      "/v2": "http://127.0.0.1:8080",
-      "/admin": "http://127.0.0.1:8080",
-      "/api": "http://127.0.0.1:8080",
-      "/health": "http://127.0.0.1:8080",
-      "/branding": "http://127.0.0.1:8080",
-      "/api-docs": "http://127.0.0.1:8080",
+      "/v2": "http://127.0.0.1:8081",
+      "/admin": "http://127.0.0.1:8081",
+      "/api": "http://127.0.0.1:8081",
+      "/health": "http://127.0.0.1:8081",
+      "/branding": "http://127.0.0.1:8081",
+      "/api-docs": "http://127.0.0.1:8081",
     },
   },
   build: {

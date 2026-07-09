@@ -47,11 +47,11 @@ const callbackUrl = computed(() =>
 
   <div class="space-y-3">
     <div>
-      <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+      <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-1">
         API Key
       </p>
       <div class="flex items-center gap-2">
-        <code class="flex-1 font-mono text-xs bg-muted/40 border border-border rounded px-2 py-1.5 break-all">
+        <code class="flex-1 font-mono text-xs bg-base-200/40 border border-base-300 rounded px-2 py-1.5 break-all">
           {{ merchant.apiKey }}
         </code>
         <Button size="sm" variant="outline" @click="copy('apiKey')">
@@ -61,11 +61,11 @@ const callbackUrl = computed(() =>
     </div>
 
     <div>
-      <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+      <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-1">
         Webhook Secret
       </p>
       <div class="flex items-center gap-2">
-        <code class="flex-1 font-mono text-xs bg-muted/40 border border-border rounded px-2 py-1.5 break-all">
+        <code class="flex-1 font-mono text-xs bg-base-200/40 border border-base-300 rounded px-2 py-1.5 break-all">
           {{ merchant.webhookSecret }}
         </code>
         <Button size="sm" variant="outline" @click="copy('secret')">
@@ -74,12 +74,12 @@ const callbackUrl = computed(() =>
       </div>
     </div>
 
-    <div v-if="merchant.callbackToken" class="rounded-md border border-border bg-muted/20 p-3">
-      <p class="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+    <div v-if="merchant.callbackToken" class="rounded-md border border-base-300 bg-base-200/20 p-3">
+      <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-1">
         URL Callback Macrodroid
       </p>
       <div class="flex items-center gap-2">
-        <code class="flex-1 font-mono text-[11px] bg-background border border-border rounded px-2 py-1.5 break-all">
+        <code class="flex-1 font-mono text-[11px] bg-base-100 border border-base-300 rounded px-2 py-1.5 break-all">
           {{ callbackUrl }}
         </code>
         <Button size="sm" variant="outline" @click="copy('callbackUrl')">
@@ -88,7 +88,7 @@ const callbackUrl = computed(() =>
       </div>
     </div>
 
-    <div class="pt-2 text-[11px] text-muted-foreground">
+    <div class="pt-2 text-[11px] text-base-content/60">
       Hint untuk dashboard: <span class="font-mono">{{ merchant.apiKeyHint }}</span>
     </div>
   </div>

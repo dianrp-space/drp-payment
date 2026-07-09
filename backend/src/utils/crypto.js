@@ -42,9 +42,9 @@ export function signWebhook(secret, payload) {
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
 
-/** Sign payload as JWT HS256 using webhookSecret. */
+/** Sign payload as JWT HS256 using webhookSecret. Short-lived (5 menit). */
 export function signJwt(payload, secret) {
-  return jwt.sign(payload, secret, { algorithm: "HS256" });
+  return jwt.sign(payload, secret, { algorithm: "HS256", expiresIn: "5m" });
 }
 
 /** Random webhook secret for a merchant. */

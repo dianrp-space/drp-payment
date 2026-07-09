@@ -137,7 +137,15 @@ export async function updateMerchant(id, data) {
   if (data.name !== undefined) payload.name = String(data.name).trim();
   if (data.email !== undefined)
     payload.email = data.email ? String(data.email).trim() : null;
-  if (data.staticQris !== undefined) payload.staticQris = String(data.staticQris).trim();
+  if (data.staticQris !== undefined) {
+    const qris = String(data.staticQris).trim();
+    if (!isValidQris(qris)) {
+      throw badRequest(
+        "staticQris tidak valid (CRC check gagal). Pastikan string QRIS utuh & benar."
+      );
+    }
+    payload.staticQris = qris;
+  }
   return prisma.merchant.update({ where: { id }, data: payload });
 }
 

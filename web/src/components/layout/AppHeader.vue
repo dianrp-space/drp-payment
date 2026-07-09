@@ -47,7 +47,7 @@ onUnmounted(() => {
 
 <template>
   <header
-    class="h-14 shrink-0 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-10"
+    class="h-14 shrink-0 border-b border-base-300 bg-base-100/80 backdrop-blur-md sticky top-0 z-10"
   >
     <div class="h-full px-4 md:px-6 flex items-center gap-3">
       <!-- Mobile menu -->
@@ -80,7 +80,7 @@ onUnmounted(() => {
       <div class="hidden md:flex items-center gap-3">
         <h1 class="font-display text-xl italic">{{ pageTitle }}</h1>
         <span
-          class="text-[11px] text-muted-foreground font-mono uppercase tracking-wider"
+          class="text-[11px] text-base-content/60 font-mono uppercase tracking-wider"
         >
           {{ route.path }}
         </span>
@@ -89,7 +89,7 @@ onUnmounted(() => {
       <div class="ml-auto flex items-center gap-2">
         <!-- Server status -->
         <div
-          class="flex items-center gap-1.5 text-xs text-muted-foreground mr-1"
+          class="flex items-center gap-1.5 text-xs text-base-content/60 mr-1"
           :title="health ? new Date(health.timestamp).toLocaleString('id-ID') : undefined"
         >
           <span
@@ -121,7 +121,7 @@ onUnmounted(() => {
         <Button
           variant="ghost"
           size="sm"
-          class="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+          class="text-error hover:text-error-content hover:bg-error"
           @click="emit('logout')"
         >
           <LogOut class="size-4" />
