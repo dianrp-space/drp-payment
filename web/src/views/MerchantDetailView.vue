@@ -38,6 +38,14 @@ import { api, HttpError } from "@/lib/api";
 import { copyToClipboard, formatDateTime, shortId } from "@/lib/utils";
 import { useBrandingStore } from "@/stores/branding";
 import type { MerchantDetail, MerchantCreated } from "@/types";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Swal from "sweetalert2";
 
 async function confirm(opts: {
@@ -86,6 +94,7 @@ const testResult = ref<{
 const editOpen = ref(false);
 const editForm = ref({ name: "", email: "", staticQris: "" });
 const editing = ref(false);
+const editConfirmOpen = ref(false);
 
 function openEdit() {
   if (!merchant.value) return;
@@ -99,15 +108,12 @@ function openEdit() {
 
 async function saveEdit() {
   if (!merchant.value) return;
-  const confirmed = await Swal.fire({
-    title: "Simpan perubahan?",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "Ya, simpan",
-    cancelButtonText: "Batal",
-    reverseButtons: true,
-  });
-  if (!confirmed.isConfirmed) return;
+  editConfirmOpen.value = true;
+}
+
+async function saveEditConfirmed() {
+  if (!merchant.value) return;
+  editConfirmOpen.value = false;
   editing.value = true;
   try {
     const payload: { name?: string; email?: string | null; staticQris?: string } = {};
@@ -755,5 +761,21 @@ onMounted(load);
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- Edit confirm -->
+    <AlertDialog :open="editConfirmOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Simpan perubahan?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Data merchant akan diperbarui dengan perubahan yang dimasukkan.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <Button variant="ghost" @click="editConfirmOpen = false">Batal</Button>
+          <Button @click="saveEditConfirmed">Ya, simpan</Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

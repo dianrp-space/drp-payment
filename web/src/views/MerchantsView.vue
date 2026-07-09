@@ -33,8 +33,17 @@ import MerchantCreateResult from "@/components/MerchantCreateResult.vue";
 import { api, HttpError } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { Merchant, MerchantCreated } from "@/types";
-import Swal from "sweetalert2";
 import jsQR from "jsqr";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const merchants = ref<Merchant[]>([]);
 const loading = ref(false);
@@ -43,6 +52,8 @@ const error = ref<string | null>(null);
 const dialogOpen = ref(false);
 const creating = ref(false);
 const createdMerchant = ref<MerchantCreated | null>(null);
+const confirmOpen = ref(false);
+const deleteTarget = ref<string | null>(null);
 
 const form = ref({
   name: "",
@@ -138,15 +149,11 @@ async function handleCreate() {
     toast.error("Upload gambar QRIS atau masukkan string QRIS manual");
     return;
   }
-  const confirmed = await Swal.fire({
-    title: "Buat merchant baru?",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "Ya, buat",
-    cancelButtonText: "Batal",
-    reverseButtons: true,
-  });
-  if (!confirmed.isConfirmed) return;
+  confirmOpen.value = true;
+}
+
+async function handleCreateConfirmed() {
+  confirmOpen.value = false;
   creating.value = true;
   try {
     const res = await api.createMerchant({
@@ -174,18 +181,13 @@ async function handleCreate() {
   }
 }
 
-async function handleDelete(id: string) {
-  const result = await Swal.fire({
-    title: "Hapus merchant?",
-    text: "Semua transaksi merchant ini akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Hapus",
-    cancelButtonText: "Batal",
-    confirmButtonColor: "#dc2626",
-    reverseButtons: true,
-  });
-  if (!result.isConfirmed) return;
+function handleDelete(id: string) {
+  deleteTarget.value = id;
+}
+
+async function handleDeleteConfirmed() {
+  const id = deleteTarget.value!;
+  deleteTarget.value = null;
   deleting.value = id;
   try {
     await api.deleteMerchant(id);
@@ -306,6 +308,22 @@ onMounted(load);
             </div>
           </form>
 
+          <!-- Confirm dialog -->
+          <AlertDialog :open="confirmOpen">
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Buat merchant baru?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Pastikan data merchant sudah benar. API key &amp; webhook secret akan dibuat otomatis.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <Button variant="ghost" @click="confirmOpen = false">Batal</Button>
+                <Button @click="handleCreateConfirmed">Ya, buat</Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <DialogFooter v-if="!createdMerchant">
             <DialogClose as-child>
               <Button type="button" variant="ghost" :disabled="creating">Batal</Button>
@@ -321,6 +339,24 @@ onMounted(load);
         </DialogContent>
       </Dialog>
     </header>
+
+    <!-- Delete confirmation -->
+    <AlertDialog :open="deleteTarget !== null">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Hapus merchant?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Semua transaksi merchant ini akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Batal</AlertDialogCancel>
+          <Button variant="destructive" @click="handleDeleteConfirmed">
+            Hapus
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     <div v-if="error" class="text-error text-sm mb-6">{{ error }}</div>
 

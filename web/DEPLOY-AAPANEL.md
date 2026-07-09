@@ -3,6 +3,9 @@
 > Panduan deploy **DRP Payment Console** (Vue 3 + daisyUI) ke aaPanel.
 > Static file output di `web/dist/`, di-serve langsung oleh Nginx.
 
+**SEBELUM** mulai ini, pastikan backend + database sudah terdeploy:
+→ [`backend/docs/DEPLOY-AAPANEL.md`](../backend/docs/DEPLOY-AAPANEL.md) (DB, backend, PM2, SSL)
+
 ---
 
 ## 1. Build Frontend
@@ -49,10 +52,39 @@ server {
     client_max_body_size 10M;
 
     # Reverse proxy ke backend Node.js
-    location /v2/            { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
-    location /admin/         { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
-    location /api/           { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
-    location = /health       { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
+    location /v2/ {
+        proxy_pass http://127.0.0.1:3006;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+    }
+    location /admin/ {
+        proxy_pass http://127.0.0.1:3006;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location /api/ {
+        proxy_pass http://127.0.0.1:3006;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location = /health {
+        proxy_pass http://127.0.0.1:3006;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
     # Static assets cache
     location ~* \.(css|js|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
