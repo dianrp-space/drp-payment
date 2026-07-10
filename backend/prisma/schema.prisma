@@ -79,7 +79,7 @@ model Transaction {
   amount          Int
   // Service fee (in IDR)
   fee             Int              @default(0)
-  // 3-digit unique suffix added to fee to make totalAmount unique per PENDING trx
+  // 3-digit unique suffix (1..300) — unik per merchant, bukan global
   uniqueDigit     Int              @default(0)
   // amount + fee + uniqueDigit (exact value the customer must pay)
   totalAmount     Int
@@ -109,6 +109,7 @@ model Transaction {
   @@unique([merchantId, referenceId])
   @@index([merchantId, status, createdAt])
   @@index([status, expiresAt])
+  // @@index([merchantId, totalAmount]) — partial unique index manually managed in migration
   @@index([totalAmount, status])
 }
 

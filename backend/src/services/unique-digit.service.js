@@ -2,22 +2,24 @@ import { prisma } from "../config/db.js";
 import { env } from "../config/env.js";
 
 // Range unique digit yang ditambahkan ke nominal agar tiap transaksi PENDING
-// punya totalAmount yang unik secara global (di-deteksi via macrodroid).
+// punya totalAmount yang unik per merchant (di-deteksi via macrodroid).
 export const UNIQUE_DIGIT_MIN = 1;
 export const UNIQUE_DIGIT_MAX = 300;
 
 /**
- * Cari unique digit (1..300) yang belum dipakai oleh transaksi PENDING manapun
- * untuk base nominal yang sama. Ini menjamin totalAmount unik global, sehingga
- * matcher bisa mencocokkan notifikasi masuk ke tepat satu transaksi.
+ * Cari unique digit (1..300) yang belum dipakai oleh transaksi PENDING merchant
+ * tertentu untuk base nominal yang sama. Per merchant punya pool sendiri
+ * (1..300), sehingga kapasitas total = N merchant × 300.
  *
  * @param {number} baseAmount - amount + fee (tanpa unique digit)
+ * @param {string} merchantId - scope pencarian per merchant
  * @returns {Promise<number>} unique digit tersedia berikutnya
  */
-export async function pickUniqueDigit(baseAmount) {
+export async function pickUniqueDigit(baseAmount, merchantId) {
   const candidates = await prisma.transaction.findMany({
     where: {
       status: "PENDING",
+      merchantId,
       amount: { gt: 0 },
     },
     select: { totalAmount: true },

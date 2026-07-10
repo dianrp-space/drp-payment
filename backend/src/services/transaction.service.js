@@ -61,16 +61,16 @@ export async function createTransaction(merchant, input) {
     );
   }
 
-  // Generate unique digit agar totalAmount unik global di antara PENDING
+  // Generate unique digit agar totalAmount unik per merchant di antara PENDING
   const baseAmount = amount + fee;
 
   // Render & persist dengan retry jika race condition pada unique index
-  // (Transaction_totalAmount_pending_unique). pickUniqueDigit cek di memori,
+  // (Transaction_merchantId_totalAmount_pending_unique). pickUniqueDigit cek di memori,
   // jadi dua request konkuren bisa dapat digit sama; DB index yang jadi pengawal.
   let transaction = null;
   let lastErr = null;
   for (let attempt = 0; attempt < UNIQUE_DIGIT_MAX_RETRIES; attempt++) {
-    const uniqueDigit = await pickUniqueDigit(baseAmount);
+    const uniqueDigit = await pickUniqueDigit(baseAmount, merchant.id);
     const totalAmount = baseAmount + uniqueDigit;
     const qrisString = generateDynamicQRIS(merchant.staticQris, totalAmount);
     const qrisImageBase64 = await renderQrisImage(qrisString, env.QR_IMAGE_FORMAT);
