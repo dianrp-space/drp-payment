@@ -21,8 +21,6 @@ export default defineConfig({
       "/admin": "http://127.0.0.1:8081",
       "/api": "http://127.0.0.1:8081",
       "/health": "http://127.0.0.1:8081",
-      "/branding": "http://127.0.0.1:8081",
-      "/api-docs": "http://127.0.0.1:8081",
     },
   },
   build: {

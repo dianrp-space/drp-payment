@@ -7,7 +7,7 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 
 function openDocs() {
-  window.open("/api-docs/", "_blank", "noopener,noreferrer");
+  window.open("/api/docs/", "_blank", "noopener,noreferrer");
 }
 
 onMounted(() => {

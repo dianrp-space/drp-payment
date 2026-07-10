@@ -41,7 +41,7 @@ const nav: NavItem[] = [
   { to: "/merchants", label: "Merchant", icon: Store },
   { to: "/audit-log", label: "Audit Log", icon: ScrollText },
   { to: "/settings", label: "Pengaturan", icon: Settings },
-  { to: "/api-docs/", label: "API Docs", icon: BookOpen, external: true },
+  { to: "/api/docs/", label: "API Docs", icon: BookOpen, external: true },
 ];
 
 function isActive(to: string): boolean {

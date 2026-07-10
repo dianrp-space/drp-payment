@@ -90,8 +90,9 @@ const apiLimiter = rateLimit({
 app.use(healthRouter);
 app.use(brandingRouter);
 
-// Swagger UI: public (docs bersifat publik).
-app.use("/api-docs", (_req, res, next) => {
+// Swagger UI: public (docs bersifat publik). Pakai prefix /api/ biar
+// keproxy oleh nginx di production (rule /api/ sudah ada).
+app.use("/api/docs", (_req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
