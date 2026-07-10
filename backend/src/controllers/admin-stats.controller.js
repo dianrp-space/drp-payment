@@ -39,6 +39,11 @@ export const getTransaction = asyncHandler(async (req, res) => {
   res.json(tx);
 });
 
+export const deleteTransaction = asyncHandler(async (req, res) => {
+  const result = await adminService.deleteTransaction(req.params.id);
+  res.json(result);
+});
+
 // Merchant list with transaction counts (for admin dashboard)
 export const listMerchantsWithStats = asyncHandler(async (_req, res) => {
   const merchants = await merchantService.listMerchants();

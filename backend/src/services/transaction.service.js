@@ -179,6 +179,22 @@ export async function cancelTransaction(merchant, referenceId) {
 }
 
 /**
+ * Hard-delete a transaction by referenceId (scoped to merchant).
+ * Useful for cleaning up test transactions from the frontend.
+ */
+export async function deleteTransaction(merchant, referenceId) {
+  const tx = await prisma.transaction.findUnique({
+    where: {
+      merchantId_referenceId: { merchantId: merchant.id, referenceId },
+    },
+  });
+  if (!tx) throw notFound("Transaction not found");
+
+  await prisma.transaction.delete({ where: { id: tx.id } });
+  return { referenceId, status: "DELETED" };
+}
+
+/**
  * Sweep all PENDING transactions whose expiresAt has passed -> mark EXPIRED.
  * Called periodically by a cron job (Phase 2+).
  *
@@ -204,8 +220,10 @@ export function serializeTransaction(t) {
     fee: t.fee,
     uniqueDigit: t.uniqueDigit,
     totalAmount: t.totalAmount,
-    qrisString: t.qrisString,
-    qrisImageBase64: t.qrisImageBase64,
+    ...(t.status !== "EXPIRED" && t.status !== "PAID" && {
+      qrisString: t.qrisString,
+      qrisImageBase64: t.qrisImageBase64,
+    }),
     expiresAt: t.expiresAt,
     paidAt: t.paidAt,
     paidAmount: t.paidAmount,

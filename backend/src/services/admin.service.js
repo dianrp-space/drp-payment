@@ -144,6 +144,16 @@ export async function getTransactionDetail(id) {
 }
 
 /**
+ * Hard-delete a transaction by its ID.
+ */
+export async function deleteTransaction(id) {
+  const tx = await prisma.transaction.findUnique({ where: { id } });
+  if (!tx) throw notFound("Transaction not found");
+  await prisma.transaction.delete({ where: { id } });
+  return { ok: true, transactionId: id };
+}
+
+/**
  * Audit log: daftar inbound API call (ApiLog), dengan filter sederhana.
  * Berguna untuk debugging & forensik — lihat siapa yang hit endpoint mana,
  * status code, IP, durasi.

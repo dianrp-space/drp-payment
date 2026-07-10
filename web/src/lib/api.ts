@@ -221,6 +221,11 @@ export const api = {
       `/admin/transactions/${id}/retry-webhook`,
       { method: "POST" }
     ),
+  deleteTransaction: (id: string) =>
+    request<{ ok: boolean; transactionId: string }>(
+      `/admin/transactions/${id}`,
+      { method: "DELETE" }
+    ),
 
   // Backup & Restore
   listBackups: () => request<{ backups: BackupFile[] }>("/admin/backups"),

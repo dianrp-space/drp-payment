@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { RouterLink } from "vue-router";
-import { Search, ChevronLeft, ChevronRight, Loader2 } from "@lucide/vue";
+import { Search, ChevronLeft, ChevronRight, Loader2, Trash2 } from "@lucide/vue";
+import Swal from "sweetalert2";
+import { toast } from "vue-sonner";
 import {
   Table,
   TableBody,
@@ -80,6 +82,32 @@ function goPage(delta: number) {
   }
 }
 
+const deleting = ref<string | null>(null);
+
+async function confirmDelete(tx: Transaction) {
+  const result = await Swal.fire({
+    icon: "warning",
+    title: "Hapus transaksi",
+    text: `Yakin ingin menghapus "${tx.referenceId}"? Tindakan ini tidak bisa dibatalkan.`,
+    showCancelButton: true,
+    confirmButtonText: "Hapus",
+    cancelButtonText: "Batal",
+    confirmButtonColor: "#dc2626",
+  });
+  if (!result.isConfirmed) return;
+
+  deleting.value = tx.transactionId;
+  try {
+    await api.deleteTransaction(tx.transactionId);
+    toast.success("Transaksi dihapus");
+    load();
+  } catch (e) {
+    toast.error(e instanceof HttpError ? e.message : "Gagal menghapus");
+  } finally {
+    deleting.value = null;
+  }
+}
+
 onMounted(load);
 
 const rangeText = computed(() => {
@@ -141,16 +169,17 @@ const rangeText = computed(() => {
             <TableHead>Status</TableHead>
             <TableHead class="text-right">Dibayar</TableHead>
             <TableHead class="text-right">Dibuat</TableHead>
+            <TableHead class="w-16 text-center">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading && !items.length">
-            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
+            <TableCell :colspan="7" class="text-center py-12 text-base-content/60">
               <Loader2 class="size-5 animate-spin inline-block" />
             </TableCell>
           </TableRow>
           <TableRow v-else-if="!items.length">
-            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
+            <TableCell :colspan="7" class="text-center py-12 text-base-content/60">
               Tidak ada transaksi.
             </TableCell>
           </TableRow>
@@ -188,6 +217,18 @@ const rangeText = computed(() => {
             </TableCell>
             <TableCell class="text-right text-xs text-base-content/60 font-mono">
               {{ formatDateTime(tx.createdAt) }}
+            </TableCell>
+            <TableCell class="text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                :disabled="deleting === tx.transactionId"
+                @click.stop="confirmDelete(tx)"
+                class="text-base-content/40 hover:text-error"
+              >
+                <Loader2 v-if="deleting === tx.transactionId" class="size-4 animate-spin" />
+                <Trash2 v-else class="size-4" />
+              </Button>
             </TableCell>
           </TableRow>
         </TableBody>

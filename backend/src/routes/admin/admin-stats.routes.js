@@ -5,6 +5,7 @@ import {
   listTransactions,
   getTransaction,
   retryWebhook,
+  deleteTransaction,
   listAuditLogs,
   cleanupAuditLogs,
   getAuditStats,
@@ -60,6 +61,7 @@ router.get("/transactions", requireAdmin, listTransactions);
  */
 router.get("/transactions/:id", requireAdmin, getTransaction);
 router.post("/transactions/:id/retry-webhook", requireAdmin, retryWebhook);
+router.delete("/transactions/:id", requireAdmin, deleteTransaction);
 
 /**
  * @openapi

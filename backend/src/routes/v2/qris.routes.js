@@ -4,6 +4,7 @@ import {
   createQrisPayment,
   getPaymentStatus,
   cancelQrisPayment,
+  deleteTransaction,
 } from "../../controllers/transaction.controller.js";
 
 const router = Router();
@@ -75,5 +76,24 @@ router.get("/payment-status", requireMerchant, getPaymentStatus);
  *       422: { description: Transaction not PENDING }
  */
 router.post("/qris-cancel", requireMerchant, cancelQrisPayment);
+
+/**
+ * @openapi
+ * /v2/qris/{referenceId}:
+ *   delete:
+ *     tags: [QRIS Payments]
+ *     summary: Delete a transaction (for testing)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: referenceId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Deleted }
+ *       404: { $ref: "#/components/schemas/ErrorResponse" }
+ */
+router.delete("/qris/:referenceId", requireMerchant, deleteTransaction);
 
 export default router;

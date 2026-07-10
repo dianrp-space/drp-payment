@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useRoute, RouterLink } from "vue-router";
+import { useRoute, useRouter, RouterLink } from "vue-router";
 import { toast } from "vue-sonner";
+import Swal from "sweetalert2";
 import {
   ArrowLeft,
   Copy,
@@ -11,6 +12,7 @@ import {
   Clock,
   Send,
   Loader2,
+  Trash2,
 } from "@lucide/vue";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ import {
 import type { TransactionDetail } from "@/types";
 
 const route = useRoute();
+const router = useRouter();
 const tx = ref<TransactionDetail | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -78,6 +81,33 @@ async function retryWebhook() {
   }
 }
 
+const deleting = ref(false);
+
+async function confirmDelete() {
+  if (!tx.value) return;
+  const result = await Swal.fire({
+    icon: "warning",
+    title: "Hapus transaksi",
+    text: `Yakin ingin menghapus "${tx.value.referenceId}"?`,
+    showCancelButton: true,
+    confirmButtonText: "Hapus",
+    cancelButtonText: "Batal",
+    confirmButtonColor: "#dc2626",
+  });
+  if (!result.isConfirmed) return;
+
+  deleting.value = true;
+  try {
+    await api.deleteTransaction(tx.value.transactionId);
+    toast.success("Transaksi dihapus");
+    router.push("/transactions");
+  } catch (e) {
+    toast.error(e instanceof HttpError ? e.message : "Gagal menghapus");
+  } finally {
+    deleting.value = false;
+  }
+}
+
 function attemptIcon(success: boolean | null) {
   if (success === true) return CheckCircle2;
   if (success === false) return XCircle;
@@ -124,6 +154,17 @@ function attemptIcon(success: boolean | null) {
             >
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="deleting"
+          @click="confirmDelete"
+          class="text-error border-error/30 hover:bg-error/10 shrink-0"
+        >
+          <Loader2 v-if="deleting" class="size-4 animate-spin" />
+          <Trash2 v-else class="size-4" />
+          Hapus
+        </Button>
       </header>
 
       <div class="grid gap-4 md:grid-cols-3">

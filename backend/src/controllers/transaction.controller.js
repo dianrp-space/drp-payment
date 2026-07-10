@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { badRequest } from "../utils/errors.js";
 import * as transactionService from "../services/transaction.service.js";
 
 const createSchema = z.object({
@@ -38,4 +39,11 @@ export const cancelQrisPayment = asyncHandler(async (req, res) => {
   const { referenceId } = cancelSchema.parse(req.body);
   await transactionService.cancelTransaction(req.merchant, referenceId);
   res.json({ referenceId, status: "EXPIRED" });
+});
+
+export const deleteTransaction = asyncHandler(async (req, res) => {
+  const { referenceId } = req.params;
+  if (!referenceId) throw badRequest("referenceId is required");
+  const result = await transactionService.deleteTransaction(req.merchant, referenceId);
+  res.json(result);
 });
