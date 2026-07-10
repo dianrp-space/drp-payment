@@ -7,10 +7,10 @@
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: oklch(0.98 0.008 80);
-  --color-base-200: oklch(0.96 0.01 80);
-  --color-base-300: oklch(0.92 0.01 75);
-  --color-base-content: oklch(0.18 0.01 60);
+  --color-base-100: #f6f1ea;
+  --color-base-200: #ede6dc;
+  --color-base-300: #e0d6c8;
+  --color-base-content: #2c2824;
 
   --color-primary: oklch(0.35 0.09 165);
   --color-primary-content: oklch(0.98 0.01 80);
