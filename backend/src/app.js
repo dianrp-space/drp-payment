@@ -13,6 +13,7 @@ import adminAuthRoutes from "./routes/admin/admin-auth.routes.js";
 import adminRoutes from "./routes/admin/admin.routes.js";
 import adminStatsRoutes from "./routes/admin/admin-stats.routes.js";
 import adminSettingsRoutes from "./routes/admin/admin-settings.routes.js";
+import backupRoutes from "./routes/admin/backup.routes.js";
 import callbackRoutes from "./routes/internal/callback.routes.js";
 import { legacyRouter } from "./routes/legacy.routes.js";
 
@@ -106,6 +107,7 @@ app.use("/admin", adminAuthRoutes);
 app.use("/admin", adminRoutes);
 app.use("/admin", adminStatsRoutes);
 app.use("/admin", adminSettingsRoutes);
+app.use("/admin", backupRoutes);
 
 // Legacy /api/* (kept for backward compatibility & QR image parsing tools)
 app.use("/api", apiLimiter, legacyRouter);

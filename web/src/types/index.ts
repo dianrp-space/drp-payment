@@ -116,6 +116,12 @@ export interface ApiError {
   details?: Array<{ path: string; message: string }>;
 }
 
+export interface BackupFile {
+  filename: string;
+  size: number;
+  createdAt: string;
+}
+
 export interface Branding {
   appName: string;
   appLogoBase64: string | null;

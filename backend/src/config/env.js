@@ -33,6 +33,10 @@ const schema = z.object({
   DEFAULT_EXPIRY_MINUTES: z.coerce.number().default(15),
   QR_IMAGE_FORMAT: z.enum(["png", "jpeg", "webp"]).default("png"),
 
+  // Directory untuk menyimpan file backup database.
+  // Default: ./backups (relative ke CWD).
+  BACKUP_DIR: z.string().optional(),
+
   // Optional: array of IPs allowed to hit /v2/callback (comma separated)
   INTERNAL_ALLOWED_IPS: z.string().optional(),
 });

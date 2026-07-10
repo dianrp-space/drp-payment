@@ -64,6 +64,12 @@ const router = createRouter({
           component: () => import("@/views/AuditLogView.vue"),
           meta: { title: "Audit Log" },
         },
+        {
+          path: "backups",
+          name: "backups",
+          component: () => import("@/views/BackupView.vue"),
+          meta: { title: "Backup & Restore" },
+        },
       ],
     },
     {

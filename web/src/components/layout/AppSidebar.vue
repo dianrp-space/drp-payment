@@ -10,6 +10,7 @@ import {
   PanelLeftOpen,
   QrCode,
   ScrollText,
+  Database,
 } from "@lucide/vue";
 import {
   Sheet,
@@ -40,6 +41,7 @@ const nav: NavItem[] = [
   { to: "/transactions", label: "Transaksi", icon: ArrowLeftRight },
   { to: "/merchants", label: "Merchant", icon: Store },
   { to: "/audit-log", label: "Audit Log", icon: ScrollText },
+  { to: "/backups", label: "Backup", icon: Database },
   { to: "/settings", label: "Pengaturan", icon: Settings },
   { to: "/api/docs/", label: "API Docs", icon: BookOpen, external: true },
 ];

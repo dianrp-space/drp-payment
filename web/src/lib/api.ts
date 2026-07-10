@@ -1,6 +1,7 @@
 import type {
   ApiError,
   ApiLog,
+  BackupFile,
   Branding,
   DashboardStats,
   Merchant,
@@ -220,6 +221,14 @@ export const api = {
       `/admin/transactions/${id}/retry-webhook`,
       { method: "POST" }
     ),
+
+  // Backup & Restore
+  listBackups: () => request<{ backups: BackupFile[] }>("/admin/backups"),
+  createBackup: () => request<BackupFile>("/admin/backups", { method: "POST" }),
+  deleteBackup: (filename: string) =>
+    request<{ ok: true }>(`/admin/backups/${encodeURIComponent(filename)}`, { method: "DELETE" }),
+  restoreBackup: (filename: string) =>
+    request<{ ok: true; filename: string }>(`/admin/backups/${encodeURIComponent(filename)}/restore`, { method: "POST" }),
 
   // Settings — branding
   getAdminBranding: () =>
