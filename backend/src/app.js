@@ -5,7 +5,7 @@ import swaggerUi from "swagger-ui-express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { swaggerSpec } from "./swagger.js";
-import { isProd, corsOrigins } from "./config/env.js";
+import { corsOrigins } from "./config/env.js";
 
 import { healthRouter } from "./routes/health.routes.js";
 import { brandingRouter } from "./routes/branding.routes.js";
@@ -90,14 +90,14 @@ const apiLimiter = rateLimit({
 app.use(healthRouter);
 app.use(brandingRouter);
 
-// Swagger UI: nonaktifkan di production (cegah expose surface API).
-if (!isProd) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-} else {
-  app.use("/api-docs", (_req, res) =>
-    res.status(404).json({ error: "API docs disabled in production", code: "NOT_FOUND" })
+// Swagger UI: public (docs bersifat publik).
+app.use("/api-docs", (_req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
   );
-}
+  next();
+}, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Public merchant API (v2) — dengan audit log inbound
 app.use("/v2", auditLog);

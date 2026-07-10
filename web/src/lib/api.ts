@@ -113,7 +113,7 @@ export const api = {
   health: () => request<{ status: string; timestamp: string }>("/health"),
 
   // Branding (public — tidak butuh auth)
-  getBranding: () => request<{ branding: Branding }>("/branding"),
+  getBranding: () => request<{ branding: Branding }>("/api/branding"),
 
   // Auth
   login: (email: string, password: string) =>

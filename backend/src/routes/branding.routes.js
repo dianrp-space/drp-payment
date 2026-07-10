@@ -29,10 +29,10 @@ export const brandingRouter = Router();
  *                     appLogoBase64: { type: string, nullable: true }
  *                     faviconBase64: { type: string, nullable: true }
  */
-brandingRouter.get(
-  "/branding",
-  asyncHandler(async (_req, res) => {
-    const branding = await appSettingService.getBranding();
-    res.json({ branding });
-  })
-);
+async function brandingHandler(_req, res) {
+  const branding = await appSettingService.getBranding();
+  res.json({ branding });
+}
+
+brandingRouter.get("/branding", asyncHandler(brandingHandler));
+brandingRouter.get("/api/branding", asyncHandler(brandingHandler));
