@@ -6,10 +6,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { copyToClipboard } from "@/lib/utils";
 import { useBrandingStore } from "@/stores/branding";
+import { useAlert } from "@/composables/useAlert";
+import AlertFeedback from "@/components/AlertFeedback.vue";
 import type { MerchantCreated } from "@/types";
 
 const props = defineProps<{ merchant: MerchantCreated }>();
 const branding = useBrandingStore();
+const alert = useAlert();
 
 const copied = ref({ apiKey: false, secret: false, callbackUrl: false });
 
@@ -21,7 +24,7 @@ async function copy(field: "apiKey" | "secret" | "callbackUrl") {
   const ok = await copyToClipboard(value);
   if (ok) {
     copied.value[field] = true;
-    toast.success("Disalin");
+    alert.show("Disalin");
     setTimeout(() => (copied.value[field] = false), 2000);
   } else {
     toast.error("Gagal menyalin");
@@ -36,6 +39,13 @@ const callbackUrl = computed(() =>
 </script>
 
 <template>
+  <AlertFeedback
+    :type="alert.type.value"
+    :visible="alert.visible.value"
+    :message="alert.message.value"
+    @dismiss="alert.dismiss"
+  />
+
   <Alert variant="destructive" class="mb-4">
     <AlertTriangle class="size-4" />
     <AlertTitle>Tampilkan sekali saja</AlertTitle>

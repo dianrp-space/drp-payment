@@ -33,6 +33,8 @@ import MerchantCreateResult from "@/components/MerchantCreateResult.vue";
 import { api, HttpError } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { Merchant, MerchantCreated } from "@/types";
+import { useAlert } from "@/composables/useAlert";
+import AlertFeedback from "@/components/AlertFeedback.vue";
 import jsQR from "jsqr";
 import {
   AlertDialog,
@@ -64,6 +66,7 @@ const form = ref({
 });
 const qrisPreviewUrl = ref<string | null>(null);
 const deleting = ref<string | null>(null);
+const alert = useAlert();
 
 async function load() {
   loading.value = true;
@@ -169,7 +172,7 @@ async function handleCreateConfirmed() {
       webhookSecret: res.merchant.webhookSecret!,
       notice: res.merchant.notice!,
     };
-    toast.success("Merchant dibuat");
+    alert.show("Merchant berhasil dibuat");
     form.value = { name: "", email: "", staticQris: "", qrisImageBase64: "", webhookUrl: "" };
     clearQrisImage();
     await load();
@@ -191,7 +194,7 @@ async function handleDeleteConfirmed() {
   deleting.value = id;
   try {
     await api.deleteMerchant(id);
-    toast.success("Merchant dihapus");
+    alert.show("Merchant berhasil dihapus");
     await load();
   } catch (e) {
     toast.error(e instanceof HttpError ? e.message : "Gagal menghapus merchant");
@@ -357,6 +360,13 @@ onMounted(load);
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <AlertFeedback
+      :type="alert.type.value"
+      :visible="alert.visible.value"
+      :message="alert.message.value"
+      @dismiss="alert.dismiss"
+    />
 
     <div v-if="error" class="text-error text-sm mb-6">{{ error }}</div>
 

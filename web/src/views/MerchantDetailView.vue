@@ -34,10 +34,12 @@ import {
 } from "@/components/ui/dialog";
 import StatusBadge from "@/components/StatusBadge.vue";
 import MerchantCreateResult from "@/components/MerchantCreateResult.vue";
+import AlertFeedback from "@/components/AlertFeedback.vue";
 import { api, HttpError } from "@/lib/api";
 import { copyToClipboard, formatDateTime, shortId } from "@/lib/utils";
 import { useBrandingStore } from "@/stores/branding";
 import type { MerchantDetail, MerchantCreated } from "@/types";
+import { useAlert } from "@/composables/useAlert";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -90,6 +92,8 @@ const testResult = ref<{
   signature: string;
 } | null>(null);
 
+const alert = useAlert();
+
 // --- Edit merchant dialog ---
 const editOpen = ref(false);
 const editForm = ref({ name: "", email: "", staticQris: "" });
@@ -125,7 +129,7 @@ async function saveEditConfirmed() {
       return;
     }
     await api.updateMerchant(merchant.value.id, payload);
-    toast.success("Merchant diperbarui");
+    alert.show("Merchant berhasil diperbarui");
     editOpen.value = false;
     await load();
   } catch (e) {
@@ -147,15 +151,15 @@ async function testWebhook() {
     const res = await api.testMerchantWebhook(merchant.value.id);
     testResult.value = res;
     if (res.success) {
-      toast.success("Webhook terkirim (HTTP " + res.statusCode + ")");
+      alert.show("Webhook berhasil terkirim (HTTP " + res.statusCode + ")");
     } else if (res.errorMessage) {
-      toast.error(res.errorMessage);
+      alert.show(res.errorMessage, "error");
     } else {
-      toast.error("Webhook gagal (HTTP " + res.statusCode + ")");
+      alert.show("Webhook gagal (HTTP " + res.statusCode + ")", "error");
     }
   } catch (e) {
     testResult.value = { success: false, statusCode: null, responseBody: null, errorMessage: "Gagal terhubung ke server", payload: null, signature: "" };
-    toast.error("Gagal mengirim webhook");
+    alert.show("Gagal mengirim webhook", "error");
   } finally {
     testingWebhook.value = false;
   }
@@ -196,7 +200,7 @@ async function saveWebhook() {
   try {
     const url = webhookUrlInput.value.trim() || null;
     await api.updateWebhook(merchant.value.id, url);
-    toast.success("Webhook URL diperbarui");
+    alert.show("Webhook URL berhasil diperbarui");
     await load();
   } catch (e) {
     toast.error(e instanceof HttpError ? e.message : "Gagal menyimpan");
@@ -278,16 +282,16 @@ async function setStatus(status: "ACTIVE" | "SUSPENDED") {
   if (!merchant.value) return;
   if (status === "SUSPENDED") {
     const ok = await confirm({
-      title: "Diskors merchant?",
+      title: "Nonaktifkan merchant?",
       text: "Semua request API merchant akan ditolak (403). Webhook tetap berjalan untuk transaksi yang sudah ada.",
-      confirmText: "Diskors",
+      confirmText: "Nonaktifkan",
       destructive: true,
     });
     if (!ok) return;
   }
   try {
     await api.setMerchantStatus(merchant.value.id, status);
-    toast.success(status === "ACTIVE" ? "Merchant diaktifkan" : "Merchant didiskors");
+    alert.show(status === "ACTIVE" ? "Merchant berhasil diaktifkan" : "Merchant dinonaktifkan");
     await load();
   } catch (e) {
     toast.error("Gagal mengubah status");
@@ -305,16 +309,16 @@ async function deleteMerchant() {
   if (!ok) return;
   try {
     await api.deleteMerchant(merchant.value.id);
-    toast.success("Merchant dihapus");
+    alert.show("Merchant berhasil dihapus");
     router.replace("/merchants");
   } catch (e) {
     toast.error(e instanceof HttpError ? e.message : "Gagal menghapus merchant");
   }
 }
 
-async function copy(text: string) {
+async function copy(text: string, label = "Disalin") {
   const ok = await copyToClipboard(text);
-  if (ok) toast.success("Disalin");
+  if (ok) alert.show(label);
 }
 
 async function revealApiKey() {
@@ -336,7 +340,7 @@ async function revealApiKey() {
 
 async function copyApiKey() {
   if (!revealedApiKey.value) return;
-  await copy(revealedApiKey.value);
+  await copy(revealedApiKey.value, "API key disalin");
 }
 
 onMounted(load);
@@ -350,6 +354,13 @@ onMounted(load);
     >
       <ArrowLeft class="size-4" /> Kembali
     </RouterLink>
+
+    <AlertFeedback
+      :type="alert.type.value"
+      :visible="alert.visible.value"
+      :message="alert.message.value"
+      @dismiss="alert.dismiss"
+    />
 
     <template v-if="loading">
       <Skeleton class="h-10 w-64 mb-3" />
@@ -622,7 +633,7 @@ onMounted(load);
                 size="sm"
                 @click="setStatus('SUSPENDED')"
               >
-                <PowerOff class="size-3.5" /> Diskors
+                <PowerOff class="size-3.5" /> Nonaktifkan
               </Button>
             </div>
             <Separator class="my-5" />
