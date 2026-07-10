@@ -173,21 +173,33 @@ const asideClass = computed(() =>
       </SheetHeader>
       <Separator />
       <nav class="px-3 py-5 flex flex-col gap-1">
-        <RouterLink
-          v-for="item in nav"
-          :key="item.to"
-          :to="item.to"
-          class="flex items-center gap-3 px-3 py-2 rounded-md text-sm"
-          :class="
-            isActive(item.to)
-              ? 'bg-primary text-primary-content font-medium'
-              : 'hover:bg-base-300'
-          "
-          @click="ui.closeSidebar()"
-        >
-          <component :is="item.icon" class="size-4" />
-          <span>{{ item.label }}</span>
-        </RouterLink>
+        <template v-for="item in nav" :key="item.to">
+          <a
+            v-if="item.external"
+            :href="item.to"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-base-300"
+            @click="ui.closeSidebar()"
+          >
+            <component :is="item.icon" class="size-4" />
+            <span>{{ item.label }}</span>
+          </a>
+          <RouterLink
+            v-else
+            :to="item.to"
+            class="flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+            :class="
+              isActive(item.to)
+                ? 'bg-primary text-primary-content font-medium'
+                : 'hover:bg-base-300'
+            "
+            @click="ui.closeSidebar()"
+          >
+            <component :is="item.icon" class="size-4" />
+            <span>{{ item.label }}</span>
+          </RouterLink>
+        </template>
       </nav>
     </SheetContent>
   </Sheet>
