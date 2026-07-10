@@ -1,14 +1,13 @@
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import swaggerUi from "swagger-ui-express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { swaggerSpec } from "./swagger.js";
 import { corsOrigins } from "./config/env.js";
 
 import { healthRouter } from "./routes/health.routes.js";
 import { brandingRouter } from "./routes/branding.routes.js";
+import { apiDocsRouter } from "./routes/api-docs.routes.js";
 import qrisRoutes from "./routes/v2/qris.routes.js";
 import adminAuthRoutes from "./routes/admin/admin-auth.routes.js";
 import adminRoutes from "./routes/admin/admin.routes.js";
@@ -90,15 +89,9 @@ const apiLimiter = rateLimit({
 app.use(healthRouter);
 app.use(brandingRouter);
 
-// Swagger UI: public (docs bersifat publik). Pakai prefix /api/ biar
-// keproxy oleh nginx di production (rule /api/ sudah ada).
-app.use("/api/docs", (_req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
-  );
-  next();
-}, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// API docs: spec JSON + Swagger UI via CDN (menghindari issue express.static
+// pada static assets swagger-ui-dist di production).
+app.use("/api", apiDocsRouter);
 
 // Public merchant API (v2) — dengan audit log inbound
 app.use("/v2", auditLog);
