@@ -32,6 +32,7 @@ interface NavItem {
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
+  external?: boolean;
 }
 
 const nav: NavItem[] = [
@@ -40,7 +41,7 @@ const nav: NavItem[] = [
   { to: "/merchants", label: "Merchant", icon: Store },
   { to: "/audit-log", label: "Audit Log", icon: ScrollText },
   { to: "/settings", label: "Pengaturan", icon: Settings },
-  { to: "/api-docs", label: "API Docs", icon: BookOpen },
+  { to: "/api-docs/", label: "API Docs", icon: BookOpen, external: true },
 ];
 
 function isActive(to: string): boolean {
@@ -95,22 +96,38 @@ const asideClass = computed(() =>
     </div>
 
     <nav class="flex-1 px-3 py-4 flex flex-col gap-1">
-      <RouterLink
-        v-for="item in nav"
-        :key="item.to"
-        :to="item.to"
-        :class="[
-          'flex items-center gap-3 rounded-md text-sm transition-colors',
-          ui.sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-3 py-2',
-          isActive(item.to)
-            ? 'bg-primary text-primary-content font-medium'
-            : 'text-base-content/80 hover:bg-base-300 hover:text-base-content',
-        ]"
-        :title="ui.sidebarCollapsed ? item.label : undefined"
-      >
-        <component :is="item.icon" class="size-4 shrink-0" />
-        <span v-if="!ui.sidebarCollapsed">{{ item.label }}</span>
-      </RouterLink>
+      <template v-for="item in nav" :key="item.to">
+        <a
+          v-if="item.external"
+          :href="item.to"
+          target="_blank"
+          rel="noopener noreferrer"
+          :class="[
+            'flex items-center gap-3 rounded-md text-sm transition-colors',
+            ui.sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-3 py-2',
+            'text-base-content/80 hover:bg-base-300 hover:text-base-content',
+          ]"
+          :title="ui.sidebarCollapsed ? item.label : undefined"
+        >
+          <component :is="item.icon" class="size-4 shrink-0" />
+          <span v-if="!ui.sidebarCollapsed">{{ item.label }}</span>
+        </a>
+        <RouterLink
+          v-else
+          :to="item.to"
+          :class="[
+            'flex items-center gap-3 rounded-md text-sm transition-colors',
+            ui.sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-3 py-2',
+            isActive(item.to)
+              ? 'bg-primary text-primary-content font-medium'
+              : 'text-base-content/80 hover:bg-base-300 hover:text-base-content',
+          ]"
+          :title="ui.sidebarCollapsed ? item.label : undefined"
+        >
+          <component :is="item.icon" class="size-4 shrink-0" />
+          <span v-if="!ui.sidebarCollapsed">{{ item.label }}</span>
+        </RouterLink>
+      </template>
     </nav>
 
     <!-- Collapse toggle (bottom) -->
