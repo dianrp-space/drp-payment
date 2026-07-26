@@ -37,6 +37,11 @@ const schema = z.object({
   // Default: ./backups (relative ke CWD).
   BACKUP_DIR: z.string().optional(),
 
+  // Folder bin PostgreSQL (tempat pg_dump & psql). Hanya perlu diset kalau
+  // binary-nya tidak ada di PATH process — umum terjadi saat run via PM2.
+  // Contoh aaPanel: /www/server/pgsql/bin
+  PG_BIN_DIR: z.string().optional(),
+
   // Optional: array of IPs allowed to hit /v2/callback (comma separated)
   INTERNAL_ALLOWED_IPS: z.string().optional(),
 });

@@ -433,6 +433,8 @@ PGPASSWORD='password-kuat' psql -U drp -h 127.0.0.1 -d drp_payment -c \
 | n8n verify signature | Gunakan field `X-DRP-Token` — JWT HS256. Extract header → JWT Verify node → algorithm HS256 → secret = `webhookSecret`. |
 | SSL expired | aaPanel → SSL → renew manual atau aktifkan auto-renew. |
 | Prisma error `connection refused` | `DATABASE_URL` salah / Postgres service mati. `systemctl status postgresql`. |
+| Backup gagal: `pg_dump: command not found` | Binary tidak ada di PATH process PM2. Cari lokasinya (`ls /www/server/pgsql/bin/pg_dump`), lalu set `PG_BIN_DIR=/www/server/pgsql/bin` di `.env` → `pm2 restart drp-payment --update-env`. Kalau binary memang belum ada: `apt install postgresql-client` (Debian/Ubuntu) atau `yum install postgresql` (RHEL). |
+| Backup gagal: `server version mismatch` | Versi `pg_dump` lebih tua dari server Postgres. Arahkan `PG_BIN_DIR` ke folder bin dengan versi yang sama/lebih baru dari server. |
 | Permission denied saat pm2 start | `chown -R www:www /www/wwwroot/pay.example.com` & pastikan PM2 Manager run user = `www`. |
 
 ---
