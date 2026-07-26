@@ -24,7 +24,7 @@ import {
 import StatusBadge from "@/components/StatusBadge.vue";
 import { api, HttpError } from "@/lib/api";
 import { formatIDR, formatDateTime, shortId } from "@/lib/utils";
-import type { Paginated, Transaction, TransactionStatus } from "@/types";
+import type { Merchant, Paginated, Transaction, TransactionStatus } from "@/types";
 
 const items = ref<Transaction[]>([]);
 const pagination = ref<Paginated<Transaction>["pagination"]>({
@@ -35,8 +35,10 @@ const pagination = ref<Paginated<Transaction>["pagination"]>({
 });
 const loading = ref(false);
 const error = ref<string | null>(null);
+const merchants = ref<Merchant[]>([]);
 
 const statusFilter = ref<TransactionStatus | "ALL">("ALL");
+const merchantFilter = ref<string>("ALL");
 const search = ref("");
 const searchInput = ref(""); // debounced
 let debounce: ReturnType<typeof setTimeout> | null = null;
@@ -50,10 +52,21 @@ watch(searchInput, (v) => {
   }, 350);
 });
 
-watch(statusFilter, () => {
+watch([statusFilter, merchantFilter], () => {
   pagination.value.page = 1;
   load();
 });
+
+async function loadMerchants() {
+  try {
+    const res = await api.listMerchants();
+    merchants.value = [...res.merchants].sort((a, b) =>
+      a.name.localeCompare(b.name, "id")
+    );
+  } catch {
+    // Filter merchant opsional — page tetap bisa dipakai tanpa daftar merchant.
+  }
+}
 
 async function load() {
   loading.value = true;
@@ -63,6 +76,7 @@ async function load() {
       page: pagination.value.page,
       limit: pagination.value.limit,
       status: statusFilter.value === "ALL" ? undefined : statusFilter.value,
+      merchantId: merchantFilter.value === "ALL" ? undefined : merchantFilter.value,
       q: search.value || undefined,
     });
     items.value = res.items;
@@ -108,7 +122,10 @@ async function confirmDelete(tx: Transaction) {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  loadMerchants();
+  load();
+});
 
 const rangeText = computed(() => {
   const { page, limit, total } = pagination.value;
@@ -121,14 +138,20 @@ const rangeText = computed(() => {
 
 <template>
   <div class="p-6 md:p-10 max-w-7xl mx-auto">
-    <header class="mb-8">
-      <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/60 mb-2">
-        Buku besar
-      </p>
-      <h1 class="font-display text-4xl italic">Transaksi</h1>
-      <p class="text-sm text-base-content/60 mt-2">
-        Semua transaksi lintas merchant, urut paling baru.
-      </p>
+    <header class="mb-8 flex items-end justify-between gap-4">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.15em] text-base-content/60 mb-2">
+          Buku besar
+        </p>
+        <h1 class="font-display text-4xl italic">Transaksi</h1>
+        <p class="text-sm text-base-content/60 mt-2">
+          Semua transaksi lintas merchant, urut paling baru.
+        </p>
+      </div>
+      <Button variant="outline" size="sm" @click="load" :disabled="loading">
+        <Loader2 v-if="loading" class="size-4 animate-spin" />
+        Refresh
+      </Button>
     </header>
 
     <!-- Filters -->
@@ -143,6 +166,21 @@ const rangeText = computed(() => {
           class="pl-9 font-mono text-sm"
         />
       </div>
+      <Select v-model="merchantFilter">
+        <SelectTrigger class="w-full sm:w-52">
+          <SelectValue placeholder="Semua merchant" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">Semua merchant</SelectItem>
+          <SelectItem
+            v-for="m in merchants"
+            :key="m.id"
+            :value="m.id"
+          >
+            {{ m.name }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
       <Select v-model="statusFilter">
         <SelectTrigger class="w-full sm:w-44">
           <SelectValue placeholder="Semua status" />
