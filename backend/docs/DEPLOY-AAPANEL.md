@@ -430,7 +430,7 @@ PGPASSWORD='password-kuat' psql -U drp -h 127.0.0.1 -d drp_payment -c \
 
 Deploy mengikuti pola yang sama dengan project lain DRP: **build di CI**, upload artefak ringkas via `rsync`, server **tidak** menjalankan `npm install` / `npm build`.
 
-Alur: push `main` → Actions build `web/dist` + bundle `backend/dist/server.js` → pack `release/` (Prisma `node_modules` saja) → `scripts/deploy.sh` → `prisma migrate deploy` + PM2 start dari `ecosystem.config.cjs`.
+Alur: push `main` → Actions build `web/dist` + bundle `backend/dist/server.cjs` → pack `release/` (Prisma `node_modules` saja) → `scripts/deploy.sh` → `prisma migrate deploy` + PM2 start dari `ecosystem.config.cjs`.
 
 ### Setup sekali
 
@@ -464,7 +464,7 @@ npm run deploy
 
 - `.env` dan folder `backups/` **tidak** di-overwrite.
 - FE yang di-serve Nginx tetap `$DEPLOY_PATH/web/dist`.
-- Deploy pertama akan `pm2 delete` lalu start ulang dari `backend/ecosystem.config.cjs` (script = `dist/server.js`).
+- Deploy pertama akan `pm2 delete` lalu start ulang dari `backend/ecosystem.config.cjs` (script = `dist/server.cjs`).
 - Sisa `web/node_modules` dari deploy lama dihapus otomatis di akhir script.
 
 ---

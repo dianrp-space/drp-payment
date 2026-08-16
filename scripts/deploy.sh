@@ -21,7 +21,7 @@ DEPLOY_PM2_NAME="${DEPLOY_PM2_NAME:-drp-payment}"
 SSH_KEY="${DEPLOY_SSH_KEY:-}"
 RELEASE="${ROOT}/release"
 
-if [[ ! -f "$RELEASE/web/dist/index.html" || ! -f "$RELEASE/backend/dist/server.js" ]]; then
+if [[ ! -f "$RELEASE/web/dist/index.html" || ! -f "$RELEASE/backend/dist/server.cjs" ]]; then
   echo "release/ is incomplete. Run: npm run pack:release" >&2
   exit 1
 fi
@@ -154,16 +154,16 @@ rm -rf "$DEPLOY_PATH/web/node_modules" \
        "$DEPLOY_PATH/node_modules"
 
 if [[ -z "$PM2_BIN" ]]; then
-  echo "pm2 not found; start dist/server.js manually." >&2
+  echo "pm2 not found; start dist/server.cjs manually." >&2
   exit 1
 fi
 
 # `pm2 restart` keeps the original script (src/server.js).
-# Delete and start from ecosystem so production always runs dist/server.js.
+# Delete and start from ecosystem so production always runs dist/server.cjs.
 as_app "$PM2_BIN" delete "$DEPLOY_PM2_NAME" || true
 as_app "$PM2_BIN" start "$DEPLOY_PATH/backend/ecosystem.config.cjs"
 as_app "$PM2_BIN" save
-echo "PM2 $DEPLOY_PM2_NAME now running backend/dist/server.js"
+echo "PM2 $DEPLOY_PM2_NAME now running backend/dist/server.cjs"
 REMOTE
 } | ssh "${SSH_OPTS[@]}" "$REMOTE" bash -s
 

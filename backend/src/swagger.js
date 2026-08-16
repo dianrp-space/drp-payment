@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import swaggerJsdoc from "swagger-jsdoc";
 import { appUrl } from "./config/env.js";
 
@@ -168,9 +167,9 @@ export function generateSwaggerSpec(serverUrl = appUrl) {
 }
 
 function resolveOpenApiPath() {
-  const here = path.dirname(fileURLToPath(import.meta.url));
+  // Production (PM2 cwd = backend/): dist/openapi.json next to dist/server.cjs
+  // Also accept openapi.json in cwd for custom layouts.
   const candidates = [
-    path.join(here, "openapi.json"), // next to dist/server.js
     path.join(process.cwd(), "dist", "openapi.json"),
     path.join(process.cwd(), "openapi.json"),
   ];

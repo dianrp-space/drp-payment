@@ -5,7 +5,7 @@ module.exports = {
     {
       name: "drp-payment",
       cwd: __dirname,
-      script: path.join(__dirname, "dist/server.js"),
+      script: path.join(__dirname, "dist/server.cjs"),
       interpreter: "node",
       exec_mode: "fork",
       instances: 1,

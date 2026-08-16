@@ -36,8 +36,8 @@ if (!fs.existsSync(path.join(webDist, "index.html"))) {
   console.error("web/dist is missing. Run: npm run build --prefix web");
   process.exit(1);
 }
-if (!fs.existsSync(path.join(backendDist, "server.js"))) {
-  console.error("backend/dist/server.js missing. Run: npm run bundle --prefix backend");
+if (!fs.existsSync(path.join(backendDist, "server.cjs"))) {
+  console.error("backend/dist/server.cjs missing. Run: npm run bundle --prefix backend");
   process.exit(1);
 }
 if (!fs.existsSync(path.join(backendDist, "openapi.json"))) {
