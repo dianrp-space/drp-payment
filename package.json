@@ -1,0 +1,11 @@
+{
+  "name": "drp-payment",
+  "private": true,
+  "scripts": {
+    "bundle:be": "npm run bundle --prefix backend",
+    "openapi:be": "npm run openapi --prefix backend",
+    "build:web": "npm run build --prefix web",
+    "pack:release": "node scripts/pack-release.mjs",
+    "deploy": "bash scripts/deploy.sh"
+  }
+}

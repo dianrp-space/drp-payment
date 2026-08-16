@@ -365,15 +365,20 @@ Pastikan HP punya internet & bisa reach `https://pay.example.com/health`.
 
 ### Update kode
 
+Deploy produksi otomatis via **GitHub Actions** (build di CI, rsync artefak — server tidak menjalankan `npm install` / `npm build`). Lihat section [Auto-deploy](#12-auto-deploy-github-actions) di bawah.
+
+Manual fallback (hanya jika Actions down):
+
 ```bash
-cd /www/wwwroot/pay.example.com
-git pull
-cd backend
-npm ci --omit=dev
-npx prisma migrate deploy   # kalau ada migration baru
-npx prisma generate
-pm2 restart drp-payment
+# Dari mesin lokal/WSL yang punya .deploy.env + SSH key:
+npm ci --prefix web && npm run build --prefix web
+npm ci --prefix backend
+npx --prefix backend prisma generate
+npm run bundle --prefix backend && npm run openapi --prefix backend
+npm run pack:release && npm run deploy
 ```
+
+> Jangan `npm ci` di VPS untuk update rutin — itu yang digantikan oleh release bundle.
 
 ### Backup database
 
@@ -421,7 +426,50 @@ PGPASSWORD='password-kuat' psql -U drp -h 127.0.0.1 -d drp_payment -c \
 
 ---
 
-## 12. Troubleshooting
+## 12. Auto-deploy (GitHub Actions)
+
+Deploy mengikuti pola yang sama dengan project lain DRP: **build di CI**, upload artefak ringkas via `rsync`, server **tidak** menjalankan `npm install` / `npm build`.
+
+Alur: push `main` → Actions build `web/dist` + bundle `backend/dist/server.js` → pack `release/` (Prisma `node_modules` saja) → `scripts/deploy.sh` → `prisma migrate deploy` + PM2 start dari `ecosystem.config.cjs`.
+
+### Setup sekali
+
+1. Di VPS, pastikan `backend/.env` sudah ada dan PM2 user (biasanya `www`) bisa jalan.
+2. Buat SSH key deploy (ed25519, tanpa passphrase), masukkan **public** key ke `~/.ssh/authorized_keys` user SSH.
+3. Di GitHub repo → **Settings → Environments → New environment** bernama `.deploy.env`.
+4. Isi Environment:
+
+| Name | Jenis | Contoh |
+|---|---|---|
+| `DEPLOY_SSH_KEY` | Secret | Isi private key lengkap (boleh key yang sama dengan project lain, mis. `kasq_deploy`) |
+| `DEPLOY_HOST` | Variable | IP atau hostname VPS |
+| `DEPLOY_USER` | Variable | `root` (untuk rsync + chown) |
+| `DEPLOY_PORT` | Variable | `22` |
+| `DEPLOY_PATH` | Variable | `/www/wwwroot/pay.example.com` |
+| `DEPLOY_APP_USER` | Variable | `dianrp` (user PM2 non-root; satu grup dengan `www`) |
+| `DEPLOY_PM2_NAME` | Variable | `drp-payment` |
+
+5. Push ke `main` atau **Actions → Deploy → Run workflow**.
+
+### Deploy lokal (WSL)
+
+```bash
+cp .deploy.env.example .deploy.env   # edit nilainya
+# setelah web build + backend bundle + openapi:
+npm run pack:release
+npm run deploy
+```
+
+### Catatan
+
+- `.env` dan folder `backups/` **tidak** di-overwrite.
+- FE yang di-serve Nginx tetap `$DEPLOY_PATH/web/dist`.
+- Deploy pertama akan `pm2 delete` lalu start ulang dari `backend/ecosystem.config.cjs` (script = `dist/server.js`).
+- Sisa `web/node_modules` dari deploy lama dihapus otomatis di akhir script.
+
+---
+
+## 13. Troubleshooting
 
 | Gejala | Cek / Solusi |
 |---|---|
@@ -436,10 +484,12 @@ PGPASSWORD='password-kuat' psql -U drp -h 127.0.0.1 -d drp_payment -c \
 | Backup gagal: `pg_dump: command not found` | Binary tidak ada di PATH process PM2. Cari lokasinya (`ls /www/server/pgsql/bin/pg_dump`), lalu set `PG_BIN_DIR=/www/server/pgsql/bin` di `.env` → `pm2 restart drp-payment --update-env`. Kalau binary memang belum ada: `apt install postgresql-client` (Debian/Ubuntu) atau `yum install postgresql` (RHEL). |
 | Backup gagal: `server version mismatch` | Versi `pg_dump` lebih tua dari server Postgres. Arahkan `PG_BIN_DIR` ke folder bin dengan versi yang sama/lebih baru dari server. |
 | Permission denied saat pm2 start | `chown -R www:www /www/wwwroot/pay.example.com` & pastikan PM2 Manager run user = `www`. |
+| Actions deploy gagal di SSH | Cek `DEPLOY_SSH_KEY` / `DEPLOY_HOST` di Environment `.deploy.env`. Pastikan public key ada di `authorized_keys`. |
+| Actions: `Missing .../.env` | Buat `backend/.env` di server sekali (tidak di-sync dari CI). |
 
 ---
 
-## 13. Hardening (Opsional, Recommended)
+## 14. Hardening (Opsional, Recommended)
 
 1. **Firewall aaPanel**: buka hanya 80, 443, 22 (SSH, ganti port default). Block 8080 dari external.
 2. **Fail2ban** untuk SSH brute-force.
@@ -450,18 +500,19 @@ PGPASSWORD='password-kuat' psql -U drp -h 127.0.0.1 -d drp_payment -c \
 
 ---
 
-## 14. Quick Reference
+## 15. Quick Reference
 
 | Apa | Dimana |
 |---|---|
 | Repo clone | `/www/wwwroot/pay.example.com` |
 | Backend `.env` | `/www/wwwroot/pay.example.com/backend/.env` |
-| Frontend static | `/www/wwwroot/pay.example.com/index.html` (served by nginx) |
+| Frontend static | `/www/wwwroot/pay.example.com/web/dist` (served by nginx) |
 | Nginx site config | aaPanel → Website → site → Config (file: `/www/server/panel/vhost/nginx/pay.example.com.conf`) |
 | PM2 process | `drp-payment` (lihat: `pm2 status`) |
 | Log backend | `pm2 logs drp-payment` |
 | Postgres | aaPanel → Databases → PostgreSQL |
-| Swagger UI | `https://pay.example.com/api-docs` |
+| Swagger UI | `https://pay.example.com/api/docs` |
+| Auto-deploy | GitHub Actions → workflow **Deploy** (Environment `.deploy.env`) |
 
 ---
 

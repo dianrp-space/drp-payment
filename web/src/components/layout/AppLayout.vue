@@ -16,11 +16,11 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-base-100 text-base-content">
+  <div class="h-svh flex overflow-hidden bg-base-100 text-base-content">
     <AppSidebar />
-    <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+    <div class="flex-1 flex flex-col min-w-0 min-h-0">
       <AppHeader @logout="handleLogout" />
-      <main class="flex-1 overflow-y-auto">
+      <main class="flex-1 min-h-0 overflow-y-auto">
         <RouterView v-slot="{ Component }">
           <transition
             enter-active-class="transition duration-200 ease-out"

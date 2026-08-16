@@ -108,11 +108,19 @@ backend/
 Setiap payment.success webhook punya signature:
 
 ```
-X-Signature: <HMAC-SHA256(webhookSecret, rawBody)>
-X-DRP-Token: <JWT HS256(payload, webhookSecret)>   # alternatif JWT
+X-Signature: <HMAC-SHA256(webhookSecret, rawBody)>   # hex digest
+X-DRP-Token: <JWT HS256(payload, webhookSecret)>     # TTL 5 menit
+Authorization: Bearer <JWT yang sama>
 X-Event-Type: payment.success
 X-Event-Id: <uuid>           # idempotency key
 ```
+
+`webhookSecret` dipakai dua cara (pilih salah satu atau keduanya):
+
+| Header | Auth type | Detail |
+|--------|-----------|--------|
+| `X-Signature` | **HMAC-SHA256** | Key = `webhookSecret`, message = **raw body** (sebelum `JSON.parse`), output = hex |
+| `X-DRP-Token` / `Authorization` | **JWT HS256** | Secret = `webhookSecret`, algorithm `HS256`, expires in 5m |
 
 **Cara 1 — HMAC-SHA256** (Node.js):
 

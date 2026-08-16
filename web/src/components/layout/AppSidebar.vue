@@ -59,7 +59,7 @@ const asideClass = computed(() =>
 <template>
   <aside
     :class="[
-      'hidden md:flex shrink-0 flex-col bg-base-200 text-base-content border-r border-base-300 transition-[width] duration-200 ease-in-out',
+      'hidden md:flex h-svh sticky top-0 shrink-0 flex-col overflow-y-auto bg-base-200 text-base-content border-r border-base-300 transition-[width] duration-200 ease-in-out',
       asideClass,
     ]"
   >

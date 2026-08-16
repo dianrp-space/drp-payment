@@ -1,0 +1,85 @@
+# Values live in the GitHub Environment named `.deploy.env`
+# (Settings → Environments). Mix of environment secrets and variables is OK.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: .deploy.env
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            backend/package-lock.json
+
+      - name: Install web deps
+        run: npm ci
+        working-directory: web
+
+      - name: Install backend deps
+        run: npm ci
+        working-directory: backend
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        working-directory: backend
+
+      - name: Build web
+        run: npm run build
+        working-directory: web
+
+      - name: Bundle backend
+        run: npm run bundle
+        working-directory: backend
+
+      - name: Generate OpenAPI
+        run: npm run openapi
+        working-directory: backend
+
+      - name: Pack release
+        run: node scripts/pack-release.mjs
+
+      - name: Deploy over SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER || vars.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || vars.DEPLOY_PATH }}
+          DEPLOY_APP_USER: ${{ secrets.DEPLOY_APP_USER || vars.DEPLOY_APP_USER }}
+          DEPLOY_PM2_NAME: ${{ secrets.DEPLOY_PM2_NAME || vars.DEPLOY_PM2_NAME }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Missing secret/var DEPLOY_HOST}"
+          : "${DEPLOY_USER:?Missing secret/var DEPLOY_USER}"
+          : "${DEPLOY_PATH:?Missing secret/var DEPLOY_PATH}"
+          : "${DEPLOY_SSH_KEY:?Missing secret DEPLOY_SSH_KEY}"
+
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          export DEPLOY_SSH_KEY="$HOME/.ssh/deploy_key"
+          export DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh

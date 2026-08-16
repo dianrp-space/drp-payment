@@ -1,2 +1,9 @@
 .well-known/
 backend/backups/
+backend/dist/
+web/dist/
+release/
+.deploy.env
+node_modules/
+backend/node_modules/
+web/node_modules/
