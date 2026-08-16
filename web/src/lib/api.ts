@@ -73,14 +73,17 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     Accept: "application/json",
     ...headers,
   };
-  if (body !== undefined && !headers["Content-Type"]) {
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  if (body !== undefined && !isForm && !headers["Content-Type"]) {
     finalHeaders["Content-Type"] = "application/json";
   }
   const token = getToken();
   if (token) finalHeaders["X-Admin-Token"] = token;
 
   const init: RequestInit = { method, headers: finalHeaders };
-  if (body !== undefined) init.body = JSON.stringify(body);
+  if (body !== undefined) {
+    init.body = isForm ? (body as FormData) : JSON.stringify(body);
+  }
 
   let res: Response;
   try {
@@ -163,6 +166,19 @@ export const api = {
     ),
   deleteMerchant: (id: string) =>
     request<{ ok: true }>(`/admin/merchants/${id}`, { method: "DELETE" }),
+  uploadMerchantAvatar: (id: string, file: File) => {
+    const fd = new FormData();
+    fd.append("avatar", file);
+    return request<{ merchant: { id: string; avatarPath: string | null } }>(
+      `/admin/merchants/${id}/avatar`,
+      { method: "POST", body: fd }
+    );
+  },
+  deleteMerchantAvatar: (id: string) =>
+    request<{ merchant: { id: string; avatarPath: string | null } }>(
+      `/admin/merchants/${id}/avatar`,
+      { method: "DELETE" }
+    ),
   getMerchantQrImage: (id: string) =>
     request<{ qrImageBase64: string }>(`/admin/merchants/${id}/qr-image`),
   revealMerchantApiKey: (id: string) =>

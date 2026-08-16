@@ -14,6 +14,9 @@ import {
   getMerchantQrImage,
   revealMerchantApiKey,
   testMerchantWebhook,
+  uploadMerchantAvatar,
+  deleteMerchantAvatar,
+  avatarUploadMiddleware,
 } from "../../controllers/admin.controller.js";
 
 const router = Router();
@@ -52,6 +55,14 @@ router.get("/merchants/:id/api-key", requireAdmin, revealMerchantApiKey);
 
 router.patch("/merchants/:id", requireAdmin, updateMerchant);
 router.delete("/merchants/:id", requireAdmin, deleteMerchant);
+
+router.post(
+  "/merchants/:id/avatar",
+  requireAdmin,
+  avatarUploadMiddleware,
+  uploadMerchantAvatar
+);
+router.delete("/merchants/:id/avatar", requireAdmin, deleteMerchantAvatar);
 
 router.patch("/merchants/:id/webhook", requireAdmin, updateWebhook);
 router.post("/merchants/:id/rotate-api-key", requireAdmin, rotateApiKey);

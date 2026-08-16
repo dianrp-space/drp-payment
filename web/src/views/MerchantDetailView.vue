@@ -18,6 +18,7 @@ import {
   Eye,
   EyeOff,
   Pencil,
+  Upload,
 } from "@lucide/vue";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,6 +143,57 @@ async function saveEditConfirmed() {
 // API key reveal state
 const revealedApiKey = ref<string | null>(null);
 const revealingKey = ref(false);
+const avatarUploading = ref(false);
+const avatarInput = ref<HTMLInputElement | null>(null);
+
+function merchantInitials(name: string) {
+  return (
+    name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0] || "")
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+
+async function onAvatarFile(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || !merchant.value) return;
+  avatarUploading.value = true;
+  try {
+    const res = await api.uploadMerchantAvatar(merchant.value.id, file);
+    merchant.value.avatarPath = res.merchant.avatarPath;
+    toast.success("Foto profil diperbarui");
+  } catch (err) {
+    toast.error(err instanceof HttpError ? err.message : "Gagal upload foto");
+  } finally {
+    avatarUploading.value = false;
+  }
+}
+
+async function removeAvatar() {
+  if (!merchant.value?.avatarPath) return;
+  const ok = await confirm({
+    title: "Hapus foto profil?",
+    text: "Merchant akan tampil tanpa foto di daftar.",
+    confirmText: "Hapus",
+    destructive: true,
+  });
+  if (!ok) return;
+  avatarUploading.value = true;
+  try {
+    const res = await api.deleteMerchantAvatar(merchant.value.id);
+    merchant.value.avatarPath = res.merchant.avatarPath;
+    toast.success("Foto profil dihapus");
+  } catch (err) {
+    toast.error(err instanceof HttpError ? err.message : "Gagal menghapus foto");
+  } finally {
+    avatarUploading.value = false;
+  }
+}
 
 async function testWebhook() {
   if (!merchant.value) return;
@@ -372,18 +424,63 @@ onMounted(load);
 
     <template v-else-if="merchant">
       <header class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <div class="flex items-center gap-3 mb-2">
-            <StatusBadge :status="merchant.status" />
-            <span class="text-[11px] text-base-content/60 font-mono">
-              {{ shortId(merchant.id) }}
+        <div class="flex items-start gap-4 min-w-0">
+          <div class="relative shrink-0">
+            <img
+              v-if="merchant.avatarPath"
+              :src="merchant.avatarPath"
+              :alt="merchant.name"
+              class="size-16 rounded-full object-cover border border-base-300 bg-base-200"
+            />
+            <span
+              v-else
+              class="flex items-center justify-center size-16 rounded-full bg-primary/10 text-primary text-lg font-semibold border border-base-300"
+            >
+              {{ merchantInitials(merchant.name) }}
             </span>
+            <input
+              ref="avatarInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden"
+              @change="onAvatarFile"
+            />
           </div>
-          <h1 class="font-display text-4xl italic">{{ merchant.name }}</h1>
-          <p class="text-sm text-base-content/60 mt-1">
-            {{ merchant.email ?? "Tanpa email" }} · dibuat
-            {{ formatDateTime(merchant.createdAt) }}
-          </p>
+          <div class="min-w-0">
+            <div class="flex items-center gap-3 mb-2">
+              <StatusBadge :status="merchant.status" />
+              <span class="text-[11px] text-base-content/60 font-mono">
+                {{ shortId(merchant.id) }}
+              </span>
+            </div>
+            <h1 class="font-display text-4xl italic truncate">{{ merchant.name }}</h1>
+            <p class="text-sm text-base-content/60 mt-1">
+              {{ merchant.email ?? "Tanpa email" }} · dibuat
+              {{ formatDateTime(merchant.createdAt) }}
+            </p>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="avatarUploading"
+                @click="avatarInput?.click()"
+              >
+                <Loader2 v-if="avatarUploading" class="size-3.5 animate-spin" />
+                <Upload v-else class="size-3.5" />
+                {{ merchant.avatarPath ? "Ganti foto" : "Upload foto" }}
+              </Button>
+              <Button
+                v-if="merchant.avatarPath"
+                variant="ghost"
+                size="sm"
+                class="text-base-content/60 hover:text-error"
+                :disabled="avatarUploading"
+                @click="removeAvatar"
+              >
+                <Trash2 class="size-3.5" /> Hapus foto
+              </Button>
+            </div>
+          </div>
         </div>
         <Button variant="outline" size="sm" @click="openEdit">
           <Pencil class="size-3.5" /> Edit

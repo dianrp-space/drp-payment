@@ -49,6 +49,8 @@ model Merchant {
   webhookUrl    String?
   // Static QRIS string (the merchant's personal QRIS)
   staticQris    String        @db.Text
+  // Public path to profile photo, e.g. "/uploads/merchants/{id}.webp"
+  avatarPath    String?
   status        MerchantStatus @default(ACTIVE)
   // Admin-side metadata
   createdAt     DateTime      @default(now())

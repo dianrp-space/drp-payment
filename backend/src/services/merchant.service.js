@@ -73,6 +73,7 @@ export async function listMerchants() {
       email: true,
       apiKeyHint: true,
       webhookUrl: true,
+      avatarPath: true,
       status: true,
       createdAt: true,
       _count: { select: { transactions: true } },
@@ -154,6 +155,14 @@ export async function setMerchantStatus(id, status) {
 }
 
 export async function deleteMerchant(id) {
-  await getMerchantById(id);
+  const merchant = await getMerchantById(id);
+  if (merchant.avatarPath) {
+    try {
+      const { deleteMerchantAvatar } = await import("./avatar.service.js");
+      await deleteMerchantAvatar(id);
+    } catch {
+      /* ignore avatar cleanup errors */
+    }
+  }
   await prisma.merchant.delete({ where: { id } });
 }

@@ -86,6 +86,15 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Merchant avatars (disk) — before SPA / static regex
+    location /uploads/ {
+        alias /www/wwwroot/pay.example.com/backend/uploads/;
+        expires 7d;
+        add_header Cache-Control "public";
+        access_log off;
+        autoindex off;
+    }
+
     # Static assets cache
     location ~* \.(css|js|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
         expires 7d;
@@ -101,6 +110,14 @@ server {
 ```
 
 > **Penting**: `try_files $uri $uri/ /index.html` — ini wajib untuk SPA (Vue Router mode history). Tanpa ini, refresh halaman selain `/` akan 404.
+>
+> **Avatar merchant**: pastikan block `location /uploads/` ada (lihat template di atas), lalu sekali saja:
+> ```bash
+> mkdir -p /www/wwwroot/pay.example.com/backend/uploads/merchants
+> chown -R dianrp:www /www/wwwroot/pay.example.com/backend/uploads
+> nginx -t && nginx -s reload
+> ```
+> Folder `backend/uploads/` tidak dihapus oleh auto-deploy.
 
 Cek & reload:
 

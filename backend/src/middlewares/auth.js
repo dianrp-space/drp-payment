@@ -4,6 +4,7 @@ import { prisma } from "../config/db.js";
 import { hashApiKey, safeEqualHex } from "../utils/crypto.js";
 import { unauthorized, forbidden } from "../utils/errors.js";
 import { findByToken as findAdminByToken } from "../services/admin-auth.service.js";
+import { logger } from "../config/logger.js";
 
 const BEARER_RE = /^Bearer\s+(.+)$/i;
 
@@ -63,11 +64,27 @@ export async function requireAdmin(req, _res, next) {
 
 /**
  * Internal (system-to-system) auth used by payment detector (Macrodroid).
- * Accepts either X-Internal-Token header.
+ * Accepts X-Internal-Token header.
  */
 export function requireInternal(req, _res, next) {
   const token = extractToken(req, "X-Internal-Token");
-  if (!token || !safeEqualHex(Buffer.from(token, "utf8").toString("hex"), Buffer.from(env.INTERNAL_TOKEN, "utf8").toString("hex"))) {
+  const expected = Buffer.from(env.INTERNAL_TOKEN, "utf8").toString("hex");
+  const presented = token
+    ? Buffer.from(token, "utf8").toString("hex")
+    : null;
+  const ok = !!presented && safeEqualHex(presented, expected);
+
+  if (!ok) {
+    logger.warn(
+      {
+        type: "callback.auth.fail",
+        method: req.method,
+        path: req.originalUrl ?? req.url,
+        ip: req.ip,
+        hasToken: !!token,
+      },
+      "[callback] auth failed — cek header X-Internal-Token"
+    );
     return next(unauthorized("Invalid internal token"));
   }
   next();

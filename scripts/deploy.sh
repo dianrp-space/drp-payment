@@ -68,6 +68,9 @@ rsync -az --delete \
   "$RELEASE/backend/node_modules/" \
   "${REMOTE}:${DEPLOY_PATH}/backend/node_modules/"
 
+# NOTE: backend/uploads/ (merchant avatars) is intentionally NOT synced or
+# deleted — it lives only on the server and must survive deploys.
+
 echo ">> Migrate, clean leftover node_modules, restart"
 # ssh joins remote argv with spaces and the remote shell parses again, so a
 # value like `pm2 restart drp-payment` must not sit unquoted on the ssh line.
@@ -149,7 +152,14 @@ fi
 
 as_app "$NODE_BIN" ./node_modules/.bin/prisma migrate deploy
 
+# Ensure avatar upload dir exists (survives deploys; not in release tarball)
+mkdir -p "$DEPLOY_PATH/backend/uploads/merchants"
+if [[ "$(id -u)" -eq 0 ]]; then
+  chown -R "$DEPLOY_APP_USER:$DEPLOY_APP_USER" "$DEPLOY_PATH/backend/uploads"
+fi
+
 # Leftover from old git-based deploys — not needed with bundled release.
+# Do NOT remove backend/uploads here.
 rm -rf "$DEPLOY_PATH/web/node_modules" \
        "$DEPLOY_PATH/node_modules"
 

@@ -42,6 +42,10 @@ const schema = z.object({
   // Contoh aaPanel: /www/server/pgsql/bin
   PG_BIN_DIR: z.string().optional(),
 
+  // Directory untuk file upload (avatar merchant, dll).
+  // Default: ./uploads (relative ke CWD / PM2 cwd = backend/).
+  UPLOAD_DIR: z.string().optional(),
+
   // Optional: array of IPs allowed to hit /v2/callback (comma separated)
   INTERNAL_ALLOWED_IPS: z.string().optional(),
 });

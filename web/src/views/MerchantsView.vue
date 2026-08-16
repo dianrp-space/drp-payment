@@ -396,11 +396,32 @@ onMounted(load);
           </TableRow>
           <TableRow v-for="m in merchants" :key="m.id" class="cursor-pointer">
             <TableCell>
-              <RouterLink :to="`/merchants/${m.id}`" class="block">
-                <div class="font-medium text-sm">{{ m.name }}</div>
-                <div class="text-[11px] text-base-content/60 mt-0.5">
-                  {{ m.email ?? "—" }}
-                </div>
+              <RouterLink :to="`/merchants/${m.id}`" class="flex items-center gap-3 min-w-0">
+                <img
+                  v-if="m.avatarPath"
+                  :src="m.avatarPath"
+                  :alt="m.name"
+                  class="size-8 rounded-full object-cover shrink-0 bg-base-200"
+                />
+                <span
+                  v-else
+                  class="flex items-center justify-center size-8 rounded-full bg-primary/10 text-primary text-[11px] font-semibold shrink-0"
+                >
+                  {{
+                    m.name
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((w) => w[0] || "")
+                      .join("")
+                      .toUpperCase() || "?"
+                  }}
+                </span>
+                <span class="min-w-0">
+                  <span class="font-medium text-sm block truncate">{{ m.name }}</span>
+                  <span class="text-[11px] text-base-content/60 mt-0.5 block truncate">
+                    {{ m.email ?? "—" }}
+                  </span>
+                </span>
               </RouterLink>
             </TableCell>
             <TableCell>

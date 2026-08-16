@@ -1,6 +1,8 @@
 import { z } from "zod";
+import multer from "multer";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import * as merchantService from "../services/merchant.service.js";
+import * as avatarService from "../services/avatar.service.js";
 import { renderQrisImage } from "../utils/qris-builder.js";
 import { parseTLV, getTagValue, getQrisProvider } from "../utils/qris-tlv.js";
 import {
@@ -9,7 +11,30 @@ import {
   decryptApiKey,
 } from "../utils/crypto.js";
 import { assertSafeFetchUrl } from "../utils/ssrf.js";
-import { notFound } from "../utils/errors.js";
+import { notFound, badRequest } from "../utils/errors.js";
+
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+  fileFilter(_req, file, cb) {
+    const ok = ["image/jpeg", "image/png", "image/webp"].includes(file.mimetype);
+    cb(ok ? null : new Error("Format gambar harus JPEG, PNG, atau WebP"), ok);
+  },
+});
+
+/** Multer middleware for avatar field; maps filter errors to badRequest. */
+export const avatarUploadMiddleware = (req, res, next) => {
+  avatarUpload.single("avatar")(req, res, (err) => {
+    if (!err) return next();
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return next(badRequest("Ukuran file maksimal 2MB"));
+      }
+      return next(badRequest(err.message));
+    }
+    return next(badRequest(err.message || "Upload gagal"));
+  });
+};
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
@@ -31,6 +56,7 @@ export const createMerchant = asyncHandler(async (req, res) => {
       apiKeyHint: merchant.apiKeyHint,
       webhookUrl: merchant.webhookUrl,
       status: merchant.status,
+      avatarPath: merchant.avatarPath ?? null,
       createdAt: merchant.createdAt,
       apiKey: rawApiKey,
       webhookSecret: merchant.webhookSecret,
@@ -59,6 +85,7 @@ export const getMerchant = asyncHandler(async (req, res) => {
       webhookSecret: merchant.webhookSecret,
       callbackToken: merchant.callbackToken,
       staticQris: merchant.staticQris,
+      avatarPath: merchant.avatarPath ?? null,
       qrisName: getTagValue(tags, "59"),
       qrisCity: getTagValue(tags, "60"),
       qrisProvider: getQrisProvider(merchant.staticQris),
@@ -119,6 +146,31 @@ export const setStatus = asyncHandler(async (req, res) => {
 export const deleteMerchant = asyncHandler(async (req, res) => {
   await merchantService.deleteMerchant(req.params.id);
   res.json({ ok: true });
+});
+
+export const uploadMerchantAvatar = asyncHandler(async (req, res) => {
+  if (!req.file) throw badRequest("Field 'avatar' (file gambar) wajib");
+  const merchant = await avatarService.saveMerchantAvatar(
+    req.params.id,
+    req.file.buffer,
+    req.file.mimetype
+  );
+  res.json({
+    merchant: {
+      id: merchant.id,
+      avatarPath: merchant.avatarPath,
+    },
+  });
+});
+
+export const deleteMerchantAvatar = asyncHandler(async (req, res) => {
+  const merchant = await avatarService.deleteMerchantAvatar(req.params.id);
+  res.json({
+    merchant: {
+      id: merchant.id,
+      avatarPath: merchant.avatarPath,
+    },
+  });
 });
 
 export const getMerchantQrImage = asyncHandler(async (req, res) => {

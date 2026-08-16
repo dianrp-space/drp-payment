@@ -247,6 +247,15 @@ server {
     location /api-docs       { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
     location /api-docs/      { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
 
+    # Merchant avatars (file di disk — jangan proxy ke Node, jangan kena SPA try_files)
+    location /uploads/ {
+        alias /www/wwwroot/pay.example.com/backend/uploads/;
+        expires 7d;
+        add_header Cache-Control "public";
+        access_log off;
+        autoindex off;
+    }
+
     # --- Static assets ---
     location ~* \.(css|js|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
         expires 7d;
@@ -507,6 +516,7 @@ npm run deploy
 | Repo clone | `/www/wwwroot/pay.example.com` |
 | Backend `.env` | `/www/wwwroot/pay.example.com/backend/.env` |
 | Frontend static | `/www/wwwroot/pay.example.com/web/dist` (served by nginx) |
+| Merchant avatars | `/www/wwwroot/pay.example.com/backend/uploads/` → URL `/uploads/...` |
 | Nginx site config | aaPanel → Website → site → Config (file: `/www/server/panel/vhost/nginx/pay.example.com.conf`) |
 | PM2 process | `drp-payment` (lihat: `pm2 status`) |
 | Log backend | `pm2 logs drp-payment` |

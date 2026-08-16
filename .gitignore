@@ -1,5 +1,6 @@
 .well-known/
 backend/backups/
+backend/uploads/
 backend/dist/
 web/dist/
 release/

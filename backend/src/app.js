@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { corsOrigins } from "./config/env.js";
+import { getUploadRoot } from "./services/avatar.service.js";
 
 import { healthRouter } from "./routes/health.routes.js";
 import { brandingRouter } from "./routes/branding.routes.js";
@@ -60,6 +61,16 @@ app.use(
 
 app.use(bodyParser.json({ limit: "2mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "2mb" }));
+
+// Merchant avatars & other uploads (dev + production fallback; Nginx prefers alias)
+app.use(
+  "/uploads",
+  express.static(getUploadRoot(), {
+    fallthrough: true,
+    maxAge: "7d",
+    index: false,
+  })
+);
 
 // --- Rate limiter ---
 // Login endpoint: ketat, anti brute-force.

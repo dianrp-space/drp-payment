@@ -180,8 +180,16 @@ export async function processNotification(notif, merchantId) {
   }
 
   logger.info(
-    { transactionId: claimed.id, referenceId: claimed.referenceId, matchedAmount, source, provider: notifProvider },
-    "detection: transaction marked PAID"
+    {
+      type: "detection.paid",
+      transactionId: claimed.id,
+      referenceId: claimed.referenceId,
+      merchantId: claimed.merchantId,
+      matchedAmount,
+      source,
+      provider: notifProvider,
+    },
+    "[detection] transaction marked PAID — dispatching webhook"
   );
 
   // Trigger webhook delivery (async, fire-and-forget)

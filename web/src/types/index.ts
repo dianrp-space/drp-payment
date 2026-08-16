@@ -63,6 +63,8 @@ export interface Merchant {
   email: string | null;
   apiKeyHint: string;
   webhookUrl: string | null;
+  /** Public path e.g. /uploads/merchants/{id}.png — null if belum ada */
+  avatarPath: string | null;
   status: MerchantStatus;
   createdAt: string;
   _count?: { transactions: number };
