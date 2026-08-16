@@ -86,8 +86,9 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Merchant avatars (disk) — before SPA / static regex
-    location /uploads/ {
+    # Merchant avatars (disk). WAJIB ^~ supaya tidak kalah oleh
+    # location ~* \.(png|jpg|...)$ yang mencari di root web/dist → 404.
+    location ^~ /uploads/ {
         alias /www/wwwroot/pay.example.com/backend/uploads/;
         expires 7d;
         add_header Cache-Control "public";

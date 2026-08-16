@@ -247,8 +247,9 @@ server {
     location /api-docs       { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
     location /api-docs/      { proxy_pass http://127.0.0.1:8080; include /www/server/panel/vhost/nginx/proxy.conf; }
 
-    # Merchant avatars (file di disk — jangan proxy ke Node, jangan kena SPA try_files)
-    location /uploads/ {
+    # Merchant avatars (disk). WAJIB ^~ supaya tidak kalah oleh
+    # location ~* \.(png|jpg|...)$ yang mencari di root web/dist → 404.
+    location ^~ /uploads/ {
         alias /www/wwwroot/pay.example.com/backend/uploads/;
         expires 7d;
         add_header Cache-Control "public";
