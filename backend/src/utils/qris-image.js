@@ -1,8 +1,5 @@
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const { Jimp } = require("jimp");
-const jsQR = require("jsqr");
+import { Jimp } from "jimp";
+import jsQR from "jsqr";
 
 /**
  * Decode QR string dari buffer gambar.

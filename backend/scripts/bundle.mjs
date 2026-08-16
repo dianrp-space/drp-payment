@@ -14,10 +14,6 @@ await esbuild.build({
   logLevel: "info",
   // Native / generated — shipped separately in release node_modules
   external: ["@prisma/client", ".prisma/*", ".prisma/client"],
-  banner: {
-    // So __dirname-style helpers and CJS interop work in the ESM bundle
-    js: `import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);`,
-  },
 });
 
 console.log("Bundled backend → dist/server.js");
