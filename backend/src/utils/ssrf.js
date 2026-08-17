@@ -1,36 +1,60 @@
 import { isProd } from "../config/env.js";
 import { badRequest } from "./errors.js";
 
-// IP ranges yang tidak boleh di-fetch dari server (cegah SSRF).
-// Hanya di-enforce di production; dev/test masih boleh localhost.
-//
-// Mencakup: loopback, private, link-local, cloud metadata, multicast, reserved.
-const BLOCKED_REGEXES = [
+// Selalu diblokir di production (loopback / metadata / link-local / reserved).
+const ALWAYS_BLOCKED = [
   /^127\./, // 127.0.0.0/8 loopback
-  /^10\./, // 10.0.0.0/8 private
-  /^172\.(1[6-9]|2\d|3[01])\./, // 172.16.0.0/12 private
-  /^192\.168\./, // 192.168.0.0/16 private
-  /^169\.254\./, // 169.254.0.0/16 link-local + cloud metadata (169.254.169.254)
+  /^169\.254\./, // 169.254.0.0/16 link-local + cloud metadata
   /^0\./, // 0.0.0.0/8 reserved
   /^::1$/, // IPv6 loopback
-  /^fc00:/, // IPv6 unique-local
   /^fe80:/, // IPv6 link-local
+];
+
+// RFC1918 / unique-local — diblokir untuk fetch umum (SSRF),
+// tapi diizinkan untuk webhook merchant (n8n / homelab di LAN).
+const PRIVATE_LAN = [
+  /^10\./, // 10.0.0.0/8
+  /^172\.(1[6-9]|2\d|3[01])\./, // 172.16.0.0/12
+  /^192\.168\./, // 192.168.0.0/16
+  /^fc00:/, // IPv6 unique-local
   /^fd/, // IPv6 unique-local (fc00::/7 subset)
 ];
 
 const ALLOWED_SCHEMES = ["http:", "https:"];
 
+function blockedRegexes(allowPrivateLan) {
+  return allowPrivateLan
+    ? ALWAYS_BLOCKED
+    : [...ALWAYS_BLOCKED, ...PRIVATE_LAN];
+}
+
+function normalizeOpts(enforceOrOpts) {
+  if (typeof enforceOrOpts === "boolean" || enforceOrOpts === undefined) {
+    return {
+      enforce: enforceOrOpts ?? isProd,
+      allowPrivateLan: false,
+    };
+  }
+  return {
+    enforce: enforceOrOpts.enforce ?? isProd,
+    allowPrivateLan: !!enforceOrOpts.allowPrivateLan,
+  };
+}
+
 /**
  * Validasi bahwa URL aman untuk di-fetch dari server.
  * - Scheme harus http/https
- * - Hostname tidak boleh resolve ke private/loopback/metadata IP (di production)
+ * - Di production: hostname tidak boleh loopback/metadata.
+ *   Private LAN (192.168/10/172.16) diblokir kecuali allowPrivateLan.
  *
  * @param {string} url
- * @param {boolean} [enforce=true] - override; default: enforce di production only
+ * @param {boolean|{ enforce?: boolean, allowPrivateLan?: boolean }} [enforceOrOpts]
  * @returns {URL} parsed URL jika valid
  * @throws {HttpError} 400 jika URL tidak aman
  */
-export function assertSafeFetchUrl(url, enforce = isProd) {
+export function assertSafeFetchUrl(url, enforceOrOpts = isProd) {
+  const { enforce, allowPrivateLan } = normalizeOpts(enforceOrOpts);
+
   let parsed;
   try {
     parsed = new URL(url);
@@ -48,16 +72,16 @@ export function assertSafeFetchUrl(url, enforce = isProd) {
 
   const host = parsed.hostname.toLowerCase();
 
-  // Block literal IP yang masuk range terlarang.
-  for (const re of BLOCKED_REGEXES) {
+  for (const re of blockedRegexes(allowPrivateLan)) {
     if (re.test(host)) {
       throw badRequest(
-        `Hostname "${host}" di-block (private/loopback/metadata IP tidak diizinkan di production).`
+        allowPrivateLan
+          ? `Hostname "${host}" di-block (loopback/metadata tidak diizinkan).`
+          : `Hostname "${host}" di-block (private/loopback/metadata IP tidak diizinkan di production).`
       );
     }
   }
 
-  // Block beberapa hostname meta yang umum dipakai SSRF.
   const blockedHosts = ["metadata.google.internal", "metadata.azure.com"];
   if (blockedHosts.includes(host)) {
     throw badRequest(`Hostname "${host}" di-block.`);
@@ -68,6 +92,14 @@ export function assertSafeFetchUrl(url, enforce = isProd) {
   // custom DNS lookup + verifikasi IP sebelum fetch. Untuk skup sekarang
   // cukup block literal IP & hostname meta yang umum.
   return parsed;
+}
+
+/**
+ * Webhook merchant: http/https, boleh IP LAN (192.168/10/172.16),
+ * tetap tolak loopback & cloud metadata.
+ */
+export function assertSafeWebhookUrl(url) {
+  return assertSafeFetchUrl(url, { enforce: isProd, allowPrivateLan: true });
 }
 
 /**

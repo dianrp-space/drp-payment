@@ -1,7 +1,7 @@
 import { prisma } from "../config/db.js";
 import { logger } from "../config/logger.js";
 import { signWebhook, signJwt } from "../utils/crypto.js";
-import { assertSafeFetchUrl } from "../utils/ssrf.js";
+import { assertSafeWebhookUrl } from "../utils/ssrf.js";
 
 // Exponential backoff schedule (in seconds). Max 6 attempts.
 const BACKOFF_SECONDS = [0, 30, 120, 600, 1800, 7200]; // now, 30s, 2m, 10m, 30m, 2h
@@ -72,7 +72,7 @@ export async function attemptDelivery(transactionId, attempt) {
   // Safety check: walau webhookUrl sudah divalidasi saat set, re-check di sini
   // untuk berjaga jika ada data lama yang tidak tervalidasi.
   try {
-    assertSafeFetchUrl(tx.merchant.webhookUrl);
+    assertSafeWebhookUrl(tx.merchant.webhookUrl);
   } catch (e) {
     logger.warn(
       { transactionId, webhookUrl: tx.merchant.webhookUrl, err: e.message },

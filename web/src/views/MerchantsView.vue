@@ -178,6 +178,7 @@ async function handleCreateConfirmed() {
     await load();
   } catch (e) {
     const msg = e instanceof HttpError ? e.message : "Gagal membuat merchant";
+    alert.show(msg, "error");
     toast.error(msg);
   } finally {
     creating.value = false;
@@ -304,7 +305,7 @@ onMounted(load);
               <Input
                 id="m-webhook"
                 v-model="form.webhookUrl"
-                type="url"
+                type="text"
                 placeholder="https://app.merchant.com/qris-callback"
                 :disabled="creating"
               />

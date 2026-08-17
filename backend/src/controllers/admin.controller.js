@@ -10,7 +10,7 @@ import {
   signJwt,
   decryptApiKey,
 } from "../utils/crypto.js";
-import { assertSafeFetchUrl } from "../utils/ssrf.js";
+import { assertSafeWebhookUrl } from "../utils/ssrf.js";
 import { notFound, badRequest } from "../utils/errors.js";
 
 const avatarUpload = multer({
@@ -46,7 +46,7 @@ const createSchema = z.object({
 
 export const createMerchant = asyncHandler(async (req, res) => {
   const parsed = createSchema.parse(req.body);
-  if (parsed.webhookUrl) assertSafeFetchUrl(parsed.webhookUrl);
+  if (parsed.webhookUrl) assertSafeWebhookUrl(parsed.webhookUrl);
   const { merchant, rawApiKey } = await merchantService.createMerchant(parsed);
   res.status(201).json({
     merchant: {
@@ -107,7 +107,7 @@ const updateMerchantSchema = z.object({
 
 export const updateWebhook = asyncHandler(async (req, res) => {
   const { webhookUrl } = updateWebhookSchema.parse(req.body);
-  if (webhookUrl) assertSafeFetchUrl(webhookUrl);
+  if (webhookUrl) assertSafeWebhookUrl(webhookUrl);
   const merchant = await merchantService.updateWebhookUrl(req.params.id, webhookUrl);
   res.json({ merchant: { id: merchant.id, webhookUrl: merchant.webhookUrl } });
 });
@@ -204,7 +204,7 @@ export const testMerchantWebhook = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: "Merchant belum memiliki webhookUrl" });
   }
 
-  assertSafeFetchUrl(merchant.webhookUrl);
+  assertSafeWebhookUrl(merchant.webhookUrl);
 
   const payload = {
     event: "payment.success",

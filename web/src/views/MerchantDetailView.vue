@@ -255,7 +255,9 @@ async function saveWebhook() {
     alert.show("Webhook URL berhasil diperbarui");
     await load();
   } catch (e) {
-    toast.error(e instanceof HttpError ? e.message : "Gagal menyimpan");
+    const msg = e instanceof HttpError ? e.message : "Gagal menyimpan webhook URL";
+    alert.show(msg, "error");
+    toast.error(msg);
   } finally {
     savingWebhook.value = false;
   }
@@ -642,12 +644,13 @@ onMounted(load);
             <Input
               id="webhook-url"
               v-model="webhookUrlInput"
-              type="url"
+              type="text"
               placeholder="https://app.merchant.com/qris-callback"
               class="font-mono text-xs"
             />
             <p class="text-[11px] text-base-content/60">
-              Set kosong untuk menonaktifkan webhook delivery ke merchant ini.
+              http/https, termasuk IP LAN (mis. http://192.168.1.10:5678/webhook).
+              Kosongkan untuk menonaktifkan webhook.
             </p>
             <Button
               class="mt-2 self-start"
