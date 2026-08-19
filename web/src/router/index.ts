@@ -47,6 +47,12 @@ const router = createRouter({
           meta: { title: "Detail Merchant" },
         },
         {
+          path: "integrasi",
+          name: "integrasi",
+          component: () => import("@/views/IntegrationsView.vue"),
+          meta: { title: "Integrasi" },
+        },
+        {
           path: "settings",
           name: "settings",
           component: () => import("@/views/SettingsView.vue"),

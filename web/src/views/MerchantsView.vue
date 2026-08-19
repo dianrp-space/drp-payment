@@ -431,7 +431,7 @@ onMounted(load);
                 </Button>
               </template>
               <p v-else class="text-[11px] text-base-content/60">
-                Menggunakan URL &amp; API key yang diisi di Pengaturan → Gopay Gateway.
+                Menggunakan URL &amp; API key yang diisi di Integrasi → Gopay Gateway.
               </p>
             </div>
 

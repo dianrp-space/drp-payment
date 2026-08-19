@@ -5,6 +5,7 @@ import {
   ArrowLeftRight,
   Store,
   Settings,
+  Plug,
   BookOpen,
   PanelLeftClose,
   PanelLeftOpen,
@@ -42,6 +43,7 @@ const nav: NavItem[] = [
   { to: "/merchants", label: "Merchant", icon: Store },
   { to: "/audit-log", label: "Audit Log", icon: ScrollText },
   { to: "/backups", label: "Backup", icon: Database },
+  { to: "/integrasi", label: "Integrasi", icon: Plug },
   { to: "/settings", label: "Pengaturan", icon: Settings },
   { to: "/api/docs/", label: "API Docs", icon: BookOpen, external: true },
 ];

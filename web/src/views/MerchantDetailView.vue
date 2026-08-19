@@ -825,7 +825,7 @@ onMounted(load);
           <h2 class="font-display text-2xl italic mb-1">Gopay Gateway</h2>
           <p class="text-xs text-base-content/60 mb-4">
             Verifikasi pembayaran via instance gopay-qris, bukan MacroDroid.
-            {{ merchant.gopayGatewayUrl ? "Merchant ini memakai gateway sendiri." : "Memakai gateway global dari Pengaturan." }}
+            {{ merchant.gopayGatewayUrl ? "Merchant ini memakai gateway sendiri." : "Memakai gateway global dari Integrasi." }}
           </p>
           <Separator class="mb-5" />
           <dl class="text-sm space-y-2 mb-4">
@@ -857,7 +857,7 @@ onMounted(load);
             :merchant-id="merchant.id"
           />
           <p v-else class="text-[11px] text-base-content/60">
-            Login GoBiz untuk gateway global ada di halaman Pengaturan.
+            Login GoBiz untuk gateway global ada di halaman Integrasi.
           </p>
         </Card>
 
