@@ -1,5 +1,8 @@
 import { prisma } from "../config/db.js";
 import { appUrl } from "../config/env.js";
+import { encryptApiKey, decryptApiKey } from "../utils/crypto.js";
+import { assertSafeWebhookUrl } from "../utils/ssrf.js";
+import { badRequest } from "../utils/errors.js";
 
 const SETTING_ID = "default";
 export const DEFAULT_APP_NAME = "DRP Payment Gateway";
@@ -80,4 +83,64 @@ export async function updateAuditCleanupSettings({ enabled, retentionDays, inter
   });
 
   return shapeAudit(row);
+}
+
+function maskSecretHint(raw) {
+  if (!raw) return null;
+  return "...." + String(raw).slice(-4).toUpperCase();
+}
+
+function shapeGopay(row) {
+  const raw = decryptApiKey(row?.gopayGatewayApiKeyEncrypted);
+  return {
+    gopayGatewayUrl: row?.gopayGatewayUrl ?? null,
+    hasGopayGatewayApiKey: !!row?.gopayGatewayApiKeyEncrypted,
+    gopayGatewayApiKeyHint: maskSecretHint(raw),
+  };
+}
+
+export async function getGopayGatewaySettings() {
+  const row = await prisma.appSetting.findUnique({
+    where: { id: SETTING_ID },
+  });
+  return shapeGopay(row);
+}
+
+export async function updateGopayGatewaySettings({ gopayGatewayUrl, gopayGatewayApiKey }) {
+  const data = {};
+  if (gopayGatewayUrl !== undefined) {
+    const trimmed = gopayGatewayUrl ? String(gopayGatewayUrl).trim() : "";
+    if (!trimmed) {
+      data.gopayGatewayUrl = null;
+      data.gopayGatewayApiKeyEncrypted = null;
+    } else {
+      assertSafeWebhookUrl(trimmed);
+      data.gopayGatewayUrl = trimmed.replace(/\/+$/, "");
+    }
+  }
+  if (gopayGatewayApiKey !== undefined) {
+    const key = gopayGatewayApiKey ? String(gopayGatewayApiKey).trim() : "";
+    data.gopayGatewayApiKeyEncrypted = key ? encryptApiKey(key) : null;
+  }
+
+  const existing = await prisma.appSetting.findUnique({ where: { id: SETTING_ID } });
+  const nextUrl =
+    data.gopayGatewayUrl !== undefined ? data.gopayGatewayUrl : existing?.gopayGatewayUrl;
+  const nextHasKey =
+    data.gopayGatewayApiKeyEncrypted !== undefined
+      ? !!data.gopayGatewayApiKeyEncrypted
+      : !!existing?.gopayGatewayApiKeyEncrypted;
+  if (nextUrl && !nextHasKey) {
+    throw badRequest("API key gateway wajib jika URL diisi");
+  }
+  if (!nextUrl && nextHasKey) {
+    throw badRequest("URL gateway wajib jika API key diisi");
+  }
+
+  const row = await prisma.appSetting.upsert({
+    where: { id: SETTING_ID },
+    create: { id: SETTING_ID, ...data },
+    update: data,
+  });
+  return shapeGopay(row);
 }

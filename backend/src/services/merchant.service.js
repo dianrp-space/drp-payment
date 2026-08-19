@@ -3,22 +3,95 @@ import {
   generateApiKey,
   generateWebhookSecret,
   encryptApiKey,
+  decryptApiKey,
 } from "../utils/crypto.js";
 import { randomBytes } from "node:crypto";
 import { isValidQris } from "../utils/qris-builder.js";
 import { parseQrisFromImage } from "../utils/qris-parser.js";
 import { conflict, badRequest, notFound } from "../utils/errors.js";
+import { assertSafeWebhookUrl } from "../utils/ssrf.js";
 
 /** Generate a per-merchant Macrodroid callback token. */
 function generateCallbackToken() {
   return "drp_cb_" + randomBytes(24).toString("hex");
 }
 
+function maskSecretHint(raw) {
+  if (!raw) return null;
+  const s = String(raw);
+  return "...." + s.slice(-4).toUpperCase();
+}
+
+export function gopayPublicFields(merchant) {
+  const rawKey = decryptApiKey(merchant.gopayGatewayApiKeyEncrypted);
+  return {
+    qrisMode: merchant.qrisMode ?? "OTHERS",
+    gopayGatewayUrl: merchant.gopayGatewayUrl ?? null,
+    hasGopayGatewayApiKey: !!merchant.gopayGatewayApiKeyEncrypted,
+    gopayGatewayApiKeyHint: maskSecretHint(rawKey),
+  };
+}
+
+function normalizeOptionalUrl(url) {
+  if (url === undefined) return undefined;
+  if (url === null) return null;
+  const trimmed = String(url).trim();
+  if (!trimmed) return null;
+  assertSafeWebhookUrl(trimmed);
+  return trimmed.replace(/\/+$/, "");
+}
+
+function applyGopayConfig(payload, input, { isCreate = false, existing = null } = {}) {
+  const qrisMode = input.qrisMode ?? (isCreate ? "OTHERS" : undefined);
+  if (qrisMode !== undefined) payload.qrisMode = qrisMode;
+
+  const nextMode = qrisMode ?? existing?.qrisMode ?? "OTHERS";
+  if (nextMode === "OTHERS") {
+    if (isCreate || input.qrisMode !== undefined) {
+      payload.gopayGatewayUrl = null;
+      payload.gopayGatewayApiKeyEncrypted = null;
+    }
+    return;
+  }
+
+  if (input.gopayGatewayUrl !== undefined) {
+    payload.gopayGatewayUrl = normalizeOptionalUrl(input.gopayGatewayUrl);
+    if (payload.gopayGatewayUrl === null) {
+      payload.gopayGatewayApiKeyEncrypted = null;
+    }
+  }
+
+  if (input.gopayGatewayApiKey !== undefined) {
+    const key = input.gopayGatewayApiKey;
+    if (key === null || String(key).trim() === "") {
+      payload.gopayGatewayApiKeyEncrypted = null;
+    } else {
+      payload.gopayGatewayApiKeyEncrypted = encryptApiKey(String(key).trim());
+    }
+  }
+
+  const nextUrl =
+    payload.gopayGatewayUrl !== undefined
+      ? payload.gopayGatewayUrl
+      : existing?.gopayGatewayUrl ?? null;
+  const nextHasKey =
+    payload.gopayGatewayApiKeyEncrypted !== undefined
+      ? !!payload.gopayGatewayApiKeyEncrypted
+      : !!existing?.gopayGatewayApiKeyEncrypted;
+
+  if (nextUrl && !nextHasKey) {
+    throw badRequest("gopayGatewayApiKey wajib jika mengisi gopayGatewayUrl");
+  }
+  if (!nextUrl && nextHasKey) {
+    throw badRequest("gopayGatewayUrl wajib jika mengisi gopayGatewayApiKey");
+  }
+}
+
 /**
  * Create a new merchant. Returns the merchant row + the RAW api key
  * (only shown once — caller must persist/return immediately).
  *
- * @param {{ name: string, email?: string, staticQris?: string, qrisImageBase64?: string, webhookUrl?: string }} input
+ * @param {{ name: string, email?: string, staticQris?: string, qrisImageBase64?: string, webhookUrl?: string, qrisMode?: string, gopayGatewayUrl?: string|null, gopayGatewayApiKey?: string|null }} input
  */
 export async function createMerchant(input) {
   let { name, email, staticQris, qrisImageBase64, webhookUrl } = input;
@@ -47,6 +120,8 @@ export async function createMerchant(input) {
   }
 
   const { raw, hash, hint } = generateApiKey();
+  const gopayData = {};
+  applyGopayConfig(gopayData, input, { isCreate: true });
   const merchant = await prisma.merchant.create({
     data: {
       name,
@@ -58,6 +133,7 @@ export async function createMerchant(input) {
       callbackToken: generateCallbackToken(),
       webhookUrl,
       staticQris,
+      ...gopayData,
     },
   });
 
@@ -75,6 +151,7 @@ export async function listMerchants() {
       webhookUrl: true,
       avatarPath: true,
       status: true,
+      qrisMode: true,
       createdAt: true,
       _count: { select: { transactions: true } },
     },
@@ -132,7 +209,7 @@ export async function updateWebhookUrl(id, webhookUrl) {
   });
 }
 
-/** Update merchant profile fields: name, email, staticQris. */
+/** Update merchant profile fields: name, email, staticQris, gopay config. */
 export async function updateMerchant(id, data) {
   const payload = {};
   if (data.name !== undefined) payload.name = String(data.name).trim();
@@ -147,6 +224,7 @@ export async function updateMerchant(id, data) {
     }
     payload.staticQris = qris;
   }
+  applyGopayConfig(payload, data, { isCreate: false, existing: await getMerchantById(id) });
   return prisma.merchant.update({ where: { id }, data: payload });
 }
 

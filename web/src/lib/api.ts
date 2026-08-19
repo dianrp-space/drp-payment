@@ -4,10 +4,15 @@ import type {
   BackupFile,
   Branding,
   DashboardStats,
+  GopayConnectionTest,
+  GopayGatewaySettings,
+  GopayLoginOutput,
+  GopaySessionStatus,
   Merchant,
   MerchantCreated,
   MerchantDetail,
   Paginated,
+  QrisMode,
   Transaction,
   TransactionDetail,
   TransactionStatus,
@@ -148,6 +153,9 @@ export const api = {
     name?: string;
     email?: string | null;
     staticQris?: string;
+    qrisMode?: QrisMode;
+    gopayGatewayUrl?: string | null;
+    gopayGatewayApiKey?: string | null;
   }) =>
     request<{ merchant: Merchant }>(`/admin/merchants/${id}`, {
       method: "PATCH",
@@ -159,6 +167,9 @@ export const api = {
     staticQris?: string;
     qrisImageBase64?: string;
     webhookUrl?: string;
+    qrisMode?: QrisMode;
+    gopayGatewayUrl?: string | null;
+    gopayGatewayApiKey?: string | null;
   }) =>
     request<{ merchant: MerchantCreated }>(
       "/admin/merchants",
@@ -300,4 +311,42 @@ export const api = {
       "/admin/settings/audit-cleanup",
       { method: "PATCH", body: data }
     ),
+
+  getGopayGatewaySettings: () =>
+    request<{ settings: GopayGatewaySettings }>("/admin/settings/gopay-gateway"),
+  updateGopayGatewaySettings: (data: {
+    gopayGatewayUrl?: string | null;
+    gopayGatewayApiKey?: string | null;
+  }) =>
+    request<{ settings: GopayGatewaySettings }>("/admin/settings/gopay-gateway", {
+      method: "PATCH",
+      body: data,
+    }),
+  testGopayConnection: (data: {
+    merchantId?: string;
+    url?: string;
+    apiKey?: string;
+  } = {}) =>
+    request<GopayConnectionTest>("/admin/gopay/test-connection", {
+      method: "POST",
+      body: data,
+    }),
+  gopayLoginStart: (merchantId?: string) =>
+    request<{ success: boolean; running?: boolean; message?: string }>(
+      "/admin/gopay/login/start",
+      { method: "POST", body: merchantId ? { merchantId } : {} }
+    ),
+  gopayLoginInput: (text: string, merchantId?: string) =>
+    request<{ success: boolean; running?: boolean; message?: string }>(
+      "/admin/gopay/login/input",
+      { method: "POST", body: merchantId ? { text, merchantId } : { text } }
+    ),
+  gopayLoginOutput: (since = 0, merchantId?: string) =>
+    request<GopayLoginOutput>("/admin/gopay/login/output", {
+      query: { since, merchantId },
+    }),
+  gopaySessionStatus: (merchantId?: string) =>
+    request<GopaySessionStatus>("/admin/gopay/login/session-status", {
+      query: { merchantId },
+    }),
 };

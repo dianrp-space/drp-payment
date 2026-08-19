@@ -1,5 +1,6 @@
 export type TransactionStatus = "PENDING" | "PAID" | "EXPIRED" | "FAILED";
 export type MerchantStatus = "ACTIVE" | "SUSPENDED";
+export type QrisMode = "OTHERS" | "GOPAY";
 export type WebhookStatus = "NONE" | "PENDING" | "SENT" | "FAILED";
 
 export interface Transaction {
@@ -66,6 +67,7 @@ export interface Merchant {
   /** Public path e.g. /uploads/merchants/{id}.png — null if belum ada */
   avatarPath: string | null;
   status: MerchantStatus;
+  qrisMode?: QrisMode;
   createdAt: string;
   _count?: { transactions: number };
 }
@@ -77,6 +79,9 @@ export interface MerchantDetail extends Merchant {
   qrisName: string | null;
   qrisCity: string | null;
   qrisProvider: string | null;
+  gopayGatewayUrl: string | null;
+  hasGopayGatewayApiKey: boolean;
+  gopayGatewayApiKeyHint: string | null;
 }
 
 export interface MerchantCreated extends Merchant {
@@ -129,4 +134,35 @@ export interface Branding {
   appLogoBase64: string | null;
   faviconBase64: string | null;
   appUrl: string;
+}
+
+export interface GopayGatewaySettings {
+  gopayGatewayUrl: string | null;
+  hasGopayGatewayApiKey: boolean;
+  gopayGatewayApiKeyHint: string | null;
+}
+
+export interface GopayConnectionTest {
+  success: boolean;
+  tokenStatus?: string | null;
+  message?: string;
+  status?: number;
+}
+
+export interface GopaySessionStatus {
+  success: boolean;
+  hasSession?: boolean;
+  expired?: boolean;
+  connected?: boolean;
+  loginRunning?: boolean;
+  message?: string;
+}
+
+export interface GopayLoginOutput {
+  success: boolean;
+  running?: boolean;
+  exitCode?: number | null;
+  offset?: number;
+  output?: string;
+  message?: string;
 }

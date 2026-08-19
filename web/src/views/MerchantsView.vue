@@ -32,7 +32,7 @@ import StatusBadge from "@/components/StatusBadge.vue";
 import MerchantCreateResult from "@/components/MerchantCreateResult.vue";
 import { api, HttpError } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
-import type { Merchant, MerchantCreated } from "@/types";
+import type { Merchant, MerchantCreated, QrisMode } from "@/types";
 import { useAlert } from "@/composables/useAlert";
 import AlertFeedback from "@/components/AlertFeedback.vue";
 import jsQR from "jsqr";
@@ -63,7 +63,12 @@ const form = ref({
   staticQris: "",
   qrisImageBase64: "",
   webhookUrl: "",
+  qrisMode: "OTHERS" as QrisMode,
+  useCustomGateway: false,
+  gopayGatewayUrl: "",
+  gopayGatewayApiKey: "",
 });
+const testingGopay = ref(false);
 const qrisPreviewUrl = ref<string | null>(null);
 const deleting = ref<string | null>(null);
 const alert = useAlert();
@@ -152,6 +157,12 @@ async function handleCreate() {
     toast.error("Upload gambar QRIS atau masukkan string QRIS manual");
     return;
   }
+  if (form.value.qrisMode === "GOPAY" && form.value.useCustomGateway) {
+    if (!form.value.gopayGatewayUrl.trim() || !form.value.gopayGatewayApiKey.trim()) {
+      toast.error("URL dan API key gateway Gopay wajib diisi untuk gateway sendiri");
+      return;
+    }
+  }
   confirmOpen.value = true;
 }
 
@@ -165,6 +176,13 @@ async function handleCreateConfirmed() {
       staticQris: form.value.staticQris.trim() || undefined,
       qrisImageBase64: form.value.qrisImageBase64 || undefined,
       webhookUrl: form.value.webhookUrl.trim() || undefined,
+      qrisMode: form.value.qrisMode,
+      ...(form.value.qrisMode === "GOPAY" && form.value.useCustomGateway
+        ? {
+            gopayGatewayUrl: form.value.gopayGatewayUrl.trim(),
+            gopayGatewayApiKey: form.value.gopayGatewayApiKey.trim(),
+          }
+        : {}),
     });
     createdMerchant.value = {
       ...res.merchant,
@@ -173,7 +191,17 @@ async function handleCreateConfirmed() {
       notice: res.merchant.notice!,
     };
     alert.show("Merchant berhasil dibuat");
-    form.value = { name: "", email: "", staticQris: "", qrisImageBase64: "", webhookUrl: "" };
+    form.value = {
+      name: "",
+      email: "",
+      staticQris: "",
+      qrisImageBase64: "",
+      webhookUrl: "",
+      qrisMode: "OTHERS",
+      useCustomGateway: false,
+      gopayGatewayUrl: "",
+      gopayGatewayApiKey: "",
+    };
     clearQrisImage();
     await load();
   } catch (e) {
@@ -207,6 +235,26 @@ async function handleDeleteConfirmed() {
 function closeDialog() {
   dialogOpen.value = false;
   createdMerchant.value = null;
+}
+
+async function testCreateGopay() {
+  if (!form.value.gopayGatewayUrl.trim() || !form.value.gopayGatewayApiKey.trim()) {
+    toast.error("Isi URL dan API key dulu");
+    return;
+  }
+  testingGopay.value = true;
+  try {
+    const res = await api.testGopayConnection({
+      url: form.value.gopayGatewayUrl.trim(),
+      apiKey: form.value.gopayGatewayApiKey.trim(),
+    });
+    if (res.success) toast.success(res.message || "Koneksi Gopay berhasil");
+    else toast.error(res.message || "Koneksi Gopay gagal");
+  } catch (e) {
+    toast.error(e instanceof HttpError ? e.message : "Gagal tes koneksi");
+  } finally {
+    testingGopay.value = false;
+  }
 }
 
 onMounted(load);
@@ -301,6 +349,93 @@ onMounted(load);
             </div>
 
             <div class="flex flex-col gap-1.5">
+              <Label>Tipe QRIS</Label>
+              <div class="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="form.qrisMode === 'OTHERS' ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="form.qrisMode = 'OTHERS'"
+                >
+                  Others
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="form.qrisMode === 'GOPAY' ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="form.qrisMode = 'GOPAY'"
+                >
+                  Gopay
+                </Button>
+              </div>
+              <p class="text-[11px] text-base-content/60">
+                Gopay: cek pembayaran via API GoBiz. Others: flow MacroDroid seperti biasa.
+              </p>
+            </div>
+
+            <div v-if="form.qrisMode === 'GOPAY'" class="flex flex-col gap-3 rounded-md border border-base-300 p-3">
+              <div class="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="!form.useCustomGateway ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="form.useCustomGateway = false"
+                >
+                  Pakai gateway global
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="form.useCustomGateway ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="form.useCustomGateway = true"
+                >
+                  Gateway sendiri
+                </Button>
+              </div>
+              <template v-if="form.useCustomGateway">
+                <div class="flex flex-col gap-1.5">
+                  <Label for="m-gopay-url">URL gopay-qris</Label>
+                  <Input
+                    id="m-gopay-url"
+                    v-model="form.gopayGatewayUrl"
+                    placeholder="https://gopay.domainkamu.com"
+                    :disabled="creating"
+                    class="font-mono text-xs"
+                  />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <Label for="m-gopay-key">API Key gateway</Label>
+                  <Input
+                    id="m-gopay-key"
+                    v-model="form.gopayGatewayApiKey"
+                    type="password"
+                    placeholder="API_KEY dari .env gopay-qris"
+                    :disabled="creating"
+                    class="font-mono text-xs"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  class="self-start"
+                  :disabled="creating || testingGopay"
+                  @click="testCreateGopay"
+                >
+                  <Loader2 v-if="testingGopay" class="size-3.5 animate-spin" />
+                  Test koneksi
+                </Button>
+              </template>
+              <p v-else class="text-[11px] text-base-content/60">
+                Menggunakan URL &amp; API key yang diisi di Pengaturan → Gopay Gateway.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
               <Label for="m-webhook">Webhook URL (opsional)</Label>
               <Input
                 id="m-webhook"
@@ -378,6 +513,7 @@ onMounted(load);
             <TableHead>Merchant</TableHead>
             <TableHead>API Key</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Tipe</TableHead>
             <TableHead class="text-right">Transaksi</TableHead>
             <TableHead class="text-right">Dibuat</TableHead>
             <TableHead class="w-12"></TableHead>
@@ -385,12 +521,12 @@ onMounted(load);
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading && !merchants.length">
-            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
+            <TableCell :colspan="7" class="text-center py-12 text-base-content/60">
               <Loader2 class="size-5 animate-spin inline-block" />
             </TableCell>
           </TableRow>
           <TableRow v-else-if="!merchants.length">
-            <TableCell :colspan="6" class="text-center py-12 text-base-content/60">
+            <TableCell :colspan="7" class="text-center py-12 text-base-content/60">
               <Store class="size-6 mx-auto mb-2 opacity-50" />
               Belum ada merchant. Klik <strong>Merchant baru</strong>.
             </TableCell>
@@ -433,6 +569,11 @@ onMounted(load);
             <TableCell>
               <RouterLink :to="`/merchants/${m.id}`">
                 <StatusBadge :status="m.status" />
+              </RouterLink>
+            </TableCell>
+            <TableCell>
+              <RouterLink :to="`/merchants/${m.id}`" class="text-xs font-mono">
+                {{ m.qrisMode === "GOPAY" ? "Gopay" : "Others" }}
               </RouterLink>
             </TableCell>
             <TableCell class="text-right font-mono tabular-nums text-sm">

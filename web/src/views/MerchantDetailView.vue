@@ -36,10 +36,11 @@ import {
 import StatusBadge from "@/components/StatusBadge.vue";
 import MerchantCreateResult from "@/components/MerchantCreateResult.vue";
 import AlertFeedback from "@/components/AlertFeedback.vue";
+import GopayLoginConsole from "@/components/GopayLoginConsole.vue";
 import { api, HttpError } from "@/lib/api";
 import { copyToClipboard, formatDateTime, shortId } from "@/lib/utils";
 import { useBrandingStore } from "@/stores/branding";
-import type { MerchantDetail, MerchantCreated } from "@/types";
+import type { MerchantDetail, MerchantCreated, QrisMode } from "@/types";
 import { useAlert } from "@/composables/useAlert";
 import {
   AlertDialog,
@@ -97,9 +98,18 @@ const alert = useAlert();
 
 // --- Edit merchant dialog ---
 const editOpen = ref(false);
-const editForm = ref({ name: "", email: "", staticQris: "" });
+const editForm = ref({
+  name: "",
+  email: "",
+  staticQris: "",
+  qrisMode: "OTHERS" as QrisMode,
+  useCustomGateway: false,
+  gopayGatewayUrl: "",
+  gopayGatewayApiKey: "",
+});
 const editing = ref(false);
 const editConfirmOpen = ref(false);
+const testingGopay = ref(false);
 
 function openEdit() {
   if (!merchant.value) return;
@@ -107,6 +117,10 @@ function openEdit() {
     name: merchant.value.name,
     email: merchant.value.email ?? "",
     staticQris: merchant.value.staticQris,
+    qrisMode: merchant.value.qrisMode ?? "OTHERS",
+    useCustomGateway: !!merchant.value.gopayGatewayUrl,
+    gopayGatewayUrl: merchant.value.gopayGatewayUrl ?? "",
+    gopayGatewayApiKey: "",
   };
   editOpen.value = true;
 }
@@ -121,10 +135,34 @@ async function saveEditConfirmed() {
   editConfirmOpen.value = false;
   editing.value = true;
   try {
-    const payload: { name?: string; email?: string | null; staticQris?: string } = {};
+    const payload: {
+      name?: string;
+      email?: string | null;
+      staticQris?: string;
+      qrisMode?: QrisMode;
+      gopayGatewayUrl?: string | null;
+      gopayGatewayApiKey?: string | null;
+    } = {};
     if (editForm.value.name.trim() !== merchant.value.name) payload.name = editForm.value.name.trim();
     if ((editForm.value.email.trim() || null) !== merchant.value.email) payload.email = editForm.value.email.trim() || null;
     if (editForm.value.staticQris.trim() !== merchant.value.staticQris) payload.staticQris = editForm.value.staticQris.trim();
+    if (editForm.value.qrisMode !== (merchant.value.qrisMode ?? "OTHERS")) {
+      payload.qrisMode = editForm.value.qrisMode;
+    }
+    if (editForm.value.qrisMode === "GOPAY") {
+      payload.qrisMode = "GOPAY";
+      if (editForm.value.useCustomGateway) {
+        payload.gopayGatewayUrl = editForm.value.gopayGatewayUrl.trim();
+        if (editForm.value.gopayGatewayApiKey.trim()) {
+          payload.gopayGatewayApiKey = editForm.value.gopayGatewayApiKey.trim();
+        }
+      } else if (merchant.value.gopayGatewayUrl) {
+        payload.gopayGatewayUrl = null;
+        payload.gopayGatewayApiKey = null;
+      }
+    } else if (merchant.value.qrisMode === "GOPAY") {
+      payload.qrisMode = "OTHERS";
+    }
     if (Object.keys(payload).length === 0) {
       editOpen.value = false;
       return;
@@ -137,6 +175,35 @@ async function saveEditConfirmed() {
     toast.error(e instanceof HttpError ? e.message : "Gagal memperbarui merchant");
   } finally {
     editing.value = false;
+  }
+}
+
+async function testMerchantGopay(fromEdit = false) {
+  testingGopay.value = true;
+  try {
+    const body =
+      fromEdit && editForm.value.useCustomGateway && editForm.value.gopayGatewayUrl.trim()
+        ? {
+            url: editForm.value.gopayGatewayUrl.trim(),
+            apiKey: editForm.value.gopayGatewayApiKey.trim() || undefined,
+            merchantId: merchant.value?.id,
+          }
+        : { merchantId: merchant.value?.id };
+    if (fromEdit && body.url && !body.apiKey && !merchant.value?.hasGopayGatewayApiKey) {
+      toast.error("Isi API key untuk tes koneksi");
+      return;
+    }
+    const res = await api.testGopayConnection(
+      body.url && body.apiKey
+        ? { url: body.url, apiKey: body.apiKey }
+        : { merchantId: merchant.value?.id }
+    );
+    if (res.success) toast.success(res.message || "Koneksi Gopay berhasil");
+    else toast.error(res.message || "Koneksi Gopay gagal");
+  } catch (e) {
+    toast.error(e instanceof HttpError ? e.message : "Gagal tes koneksi");
+  } finally {
+    testingGopay.value = false;
   }
 }
 
@@ -451,6 +518,11 @@ onMounted(load);
           <div class="min-w-0">
             <div class="flex items-center gap-3 mb-2">
               <StatusBadge :status="merchant.status" />
+              <span
+                class="text-[11px] font-medium px-2 py-0.5 rounded-full border border-base-300"
+              >
+                {{ merchant.qrisMode === "GOPAY" ? "Gopay" : "Others" }}
+              </span>
               <span class="text-[11px] text-base-content/60 font-mono">
                 {{ shortId(merchant.id) }}
               </span>
@@ -749,6 +821,46 @@ onMounted(load);
         </Card>
         </div>
 
+        <Card v-if="merchant.qrisMode === 'GOPAY'" class="p-6">
+          <h2 class="font-display text-2xl italic mb-1">Gopay Gateway</h2>
+          <p class="text-xs text-base-content/60 mb-4">
+            Verifikasi pembayaran via instance gopay-qris, bukan MacroDroid.
+            {{ merchant.gopayGatewayUrl ? "Merchant ini memakai gateway sendiri." : "Memakai gateway global dari Pengaturan." }}
+          </p>
+          <Separator class="mb-5" />
+          <dl class="text-sm space-y-2 mb-4">
+            <div class="flex justify-between gap-4">
+              <dt class="text-base-content/60">URL</dt>
+              <dd class="font-mono text-xs break-all text-right">
+                {{ merchant.gopayGatewayUrl || "Global" }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-base-content/60">API Key</dt>
+              <dd class="font-mono text-xs">
+                {{ merchant.gopayGatewayApiKeyHint || (merchant.gopayGatewayUrl ? "—" : "Global") }}
+              </dd>
+            </div>
+          </dl>
+          <Button
+            variant="outline"
+            size="sm"
+            class="mb-5"
+            :disabled="testingGopay"
+            @click="testMerchantGopay(false)"
+          >
+            <Loader2 v-if="testingGopay" class="size-3.5 animate-spin" />
+            Test koneksi
+          </Button>
+          <GopayLoginConsole
+            v-if="merchant.gopayGatewayUrl"
+            :merchant-id="merchant.id"
+          />
+          <p v-else class="text-[11px] text-base-content/60">
+            Login GoBiz untuk gateway global ada di halaman Pengaturan.
+          </p>
+        </Card>
+
         <!-- Macrodroid callback (per-merchant) -->
         <Card class="p-6">
           <div class="flex items-center gap-2 mb-1">
@@ -861,6 +973,70 @@ onMounted(load);
           <div>
             <Label for="edit-qris" class="text-xs uppercase tracking-wider">String QRIS</Label>
             <Input id="edit-qris" v-model="editForm.staticQris" class="mt-1 font-mono text-xs" />
+          </div>
+          <div>
+            <Label class="text-xs uppercase tracking-wider">Tipe QRIS</Label>
+            <div class="flex gap-2 mt-1">
+              <Button
+                type="button"
+                size="sm"
+                :variant="editForm.qrisMode === 'OTHERS' ? 'default' : 'outline'"
+                @click="editForm.qrisMode = 'OTHERS'"
+              >
+                Others
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                :variant="editForm.qrisMode === 'GOPAY' ? 'default' : 'outline'"
+                @click="editForm.qrisMode = 'GOPAY'"
+              >
+                Gopay
+              </Button>
+            </div>
+          </div>
+          <div v-if="editForm.qrisMode === 'GOPAY'" class="space-y-3 rounded-md border border-base-300 p-3">
+            <div class="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                :variant="!editForm.useCustomGateway ? 'default' : 'outline'"
+                @click="editForm.useCustomGateway = false"
+              >
+                Gateway global
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                :variant="editForm.useCustomGateway ? 'default' : 'outline'"
+                @click="editForm.useCustomGateway = true"
+              >
+                Gateway sendiri
+              </Button>
+            </div>
+            <template v-if="editForm.useCustomGateway">
+              <Input
+                v-model="editForm.gopayGatewayUrl"
+                placeholder="https://gopay.domainkamu.com"
+                class="font-mono text-xs"
+              />
+              <Input
+                v-model="editForm.gopayGatewayApiKey"
+                type="password"
+                :placeholder="merchant?.hasGopayGatewayApiKey ? 'Kosongkan jika tidak diganti' : 'API key gateway'"
+                class="font-mono text-xs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                :disabled="testingGopay"
+                @click="testMerchantGopay(true)"
+              >
+                <Loader2 v-if="testingGopay" class="size-3.5 animate-spin" />
+                Test koneksi
+              </Button>
+            </template>
           </div>
         </div>
         <DialogFooter>

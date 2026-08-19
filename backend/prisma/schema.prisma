@@ -49,6 +49,11 @@ model Merchant {
   webhookUrl    String?
   // Static QRIS string (the merchant's personal QRIS)
   staticQris    String        @db.Text
+  // OTHERS = MacroDroid callback (default). GOPAY = poll gopay-qris gateway.
+  qrisMode      QrisMode      @default(OTHERS)
+  // Optional per-merchant gopay-qris instance. Null = pakai setting global.
+  gopayGatewayUrl String?
+  gopayGatewayApiKeyEncrypted String? @db.Text
   // Public path to profile photo, e.g. "/uploads/merchants/{id}.webp"
   avatarPath    String?
   status        MerchantStatus @default(ACTIVE)
@@ -64,6 +69,11 @@ model Merchant {
 enum MerchantStatus {
   ACTIVE
   SUSPENDED
+}
+
+enum QrisMode {
+  OTHERS
+  GOPAY
 }
 
 // ============================================================
@@ -170,6 +180,9 @@ model AppSetting {
   auditRetentionDays Int?
   // Audit log auto-cleanup: aktif atau tidak. Null = true (aktif).
   auditCleanupEnabled Boolean?
+  // Global gopay-qris gateway (fallback jika merchant tidak isi sendiri).
+  gopayGatewayUrl String?
+  gopayGatewayApiKeyEncrypted String? @db.Text
   updatedAt     DateTime @updatedAt
 }
 

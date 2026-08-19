@@ -2,6 +2,7 @@ import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { badRequest } from "../utils/errors.js";
 import * as transactionService from "../services/transaction.service.js";
+import { maybeRefreshFromGopay } from "../services/gopay-gateway.service.js";
 
 const createSchema = z.object({
   referenceId: z.string().min(1).max(100),
@@ -27,7 +28,8 @@ const statusSchema = z.object({
 
 export const getPaymentStatus = asyncHandler(async (req, res) => {
   const query = statusSchema.parse(req.query);
-  const tx = await transactionService.getTransactionStatus(req.merchant, query);
+  let tx = await transactionService.getTransactionStatus(req.merchant, query);
+  tx = await maybeRefreshFromGopay(tx, req.merchant);
   res.json(transactionService.serializeTransaction(tx));
 });
 
