@@ -84,7 +84,7 @@ const callbackUrl = computed(() =>
       </div>
     </div>
 
-    <div v-if="merchant.callbackToken" class="rounded-md border border-base-300 bg-base-200/20 p-3">
+    <div v-if="merchant.callbackToken && merchant.qrisMode !== 'GOPAY'" class="rounded-md border border-base-300 bg-base-200/20 p-3">
       <p class="text-[11px] uppercase tracking-wider text-base-content/60 mb-1">
         URL Callback Macrodroid
       </p>

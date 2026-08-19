@@ -862,7 +862,7 @@ onMounted(load);
         </Card>
 
         <!-- Macrodroid callback (per-merchant) -->
-        <Card class="p-6">
+        <Card v-if="merchant.qrisMode !== 'GOPAY'" class="p-6">
           <div class="flex items-center gap-2 mb-1">
             <Smartphone class="size-4 text-primary" />
             <h2 class="font-display text-2xl italic">Callback Macrodroid</h2>
