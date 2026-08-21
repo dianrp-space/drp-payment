@@ -41,6 +41,25 @@ export const testGopayConnection = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+export const getGopayStaticQris = asyncHandler(async (req, res) => {
+  const body = testSchema.parse(req.body ?? {});
+  const cfg = await resolveAdminGateway(body);
+  const result = await gopayGateway.fetchStaticQris(cfg.url, cfg.apiKey);
+  const qrisStatic = result.ok
+    ? String(result.body?.data?.qris_static ?? "").trim() || null
+    : null;
+  res.json({
+    success: result.ok && !!qrisStatic,
+    source: cfg.source ?? "global",
+    message:
+      result.ok && qrisStatic
+        ? "QRIS statis berhasil diambil dari gateway GoBiz"
+        : result.body?.message || `Gagal mengambil QRIS statis (HTTP ${result.status})`,
+    qrisStatic,
+    tokenStatus: result.ok ? "valid" : null,
+  });
+});
+
 const loginScopeSchema = z.object({
   merchantId: z.string().min(1).optional(),
 });

@@ -75,7 +75,7 @@ export interface Merchant {
 export interface MerchantDetail extends Merchant {
   webhookSecret: string;
   callbackToken: string | null;
-  staticQris: string;
+  staticQris: string | null;
   qrisName: string | null;
   qrisCity: string | null;
   qrisProvider: string | null;
@@ -147,6 +147,14 @@ export interface GopayConnectionTest {
   tokenStatus?: string | null;
   message?: string;
   status?: number;
+}
+
+export interface GopayStaticQrisResult {
+  success: boolean;
+  source?: "global" | "merchant";
+  message?: string;
+  qrisStatic?: string | null;
+  tokenStatus?: string | null;
 }
 
 export interface GopaySessionStatus {

@@ -110,18 +110,21 @@ const editForm = ref({
 const editing = ref(false);
 const editConfirmOpen = ref(false);
 const testingGopay = ref(false);
+const gopayFetching = ref(false);
+const gopayStaticQris = ref<string | null>(null);
 
 function openEdit() {
   if (!merchant.value) return;
   editForm.value = {
     name: merchant.value.name,
     email: merchant.value.email ?? "",
-    staticQris: merchant.value.staticQris,
+    staticQris: merchant.value.staticQris ?? "",
     qrisMode: merchant.value.qrisMode ?? "OTHERS",
     useCustomGateway: !!merchant.value.gopayGatewayUrl,
     gopayGatewayUrl: merchant.value.gopayGatewayUrl ?? "",
     gopayGatewayApiKey: "",
   };
+  gopayStaticQris.value = merchant.value.staticQris;
   editOpen.value = true;
 }
 
@@ -145,11 +148,8 @@ async function saveEditConfirmed() {
     } = {};
     if (editForm.value.name.trim() !== merchant.value.name) payload.name = editForm.value.name.trim();
     if ((editForm.value.email.trim() || null) !== merchant.value.email) payload.email = editForm.value.email.trim() || null;
-    if (editForm.value.staticQris.trim() !== merchant.value.staticQris) payload.staticQris = editForm.value.staticQris.trim();
-    if (editForm.value.qrisMode !== (merchant.value.qrisMode ?? "OTHERS")) {
-      payload.qrisMode = editForm.value.qrisMode;
-    }
     if (editForm.value.qrisMode === "GOPAY") {
+      // QRIS statis Gopay selalu dari gateway — jangan kirim staticQris manual.
       payload.qrisMode = "GOPAY";
       if (editForm.value.useCustomGateway) {
         payload.gopayGatewayUrl = editForm.value.gopayGatewayUrl.trim();
@@ -160,8 +160,13 @@ async function saveEditConfirmed() {
         payload.gopayGatewayUrl = null;
         payload.gopayGatewayApiKey = null;
       }
-    } else if (merchant.value.qrisMode === "GOPAY") {
-      payload.qrisMode = "OTHERS";
+    } else {
+      if (editForm.value.staticQris.trim() !== (merchant.value.staticQris ?? "")) {
+        payload.staticQris = editForm.value.staticQris.trim();
+      }
+      if (editForm.value.qrisMode !== (merchant.value.qrisMode ?? "OTHERS")) {
+        payload.qrisMode = editForm.value.qrisMode;
+      }
     }
     if (Object.keys(payload).length === 0) {
       editOpen.value = false;
@@ -198,12 +203,55 @@ async function testMerchantGopay(fromEdit = false) {
         ? { url: body.url, apiKey: body.apiKey }
         : { merchantId: merchant.value?.id }
     );
-    if (res.success) toast.success(res.message || "Koneksi Gopay berhasil");
-    else toast.error(res.message || "Koneksi Gopay gagal");
+    if (res.success) {
+      alert.show(
+        `Koneksi Gopay berhasil. Token ${res.tokenStatus === "invalid" ? "tidak valid" : "valid"}. ${res.message || ""}`,
+        "success"
+      );
+    } else {
+      alert.show(res.message || "Koneksi Gopay gagal", "error");
+    }
   } catch (e) {
-    toast.error(e instanceof HttpError ? e.message : "Gagal tes koneksi");
+    alert.show(e instanceof HttpError ? e.message : "Gagal tes koneksi", "error");
   } finally {
     testingGopay.value = false;
+  }
+}
+
+async function fetchEditGopayStaticQris() {
+  if (!merchant.value) return;
+  gopayFetching.value = true;
+  try {
+    const body =
+      editForm.value.useCustomGateway &&
+      editForm.value.gopayGatewayUrl.trim() &&
+      editForm.value.gopayGatewayApiKey.trim()
+        ? {
+            url: editForm.value.gopayGatewayUrl.trim(),
+            apiKey: editForm.value.gopayGatewayApiKey.trim(),
+          }
+        : { merchantId: merchant.value.id };
+    const res = await api.getGopayStaticQris(body);
+    if (res.success && res.qrisStatic) {
+      gopayStaticQris.value = res.qrisStatic;
+      editForm.value.staticQris = res.qrisStatic;
+      alert.show(
+        `QRIS statis berhasil diambil dari gateway ${res.source === "merchant" ? "pribadi" : "global"}.`,
+        "success"
+      );
+    } else {
+      alert.show(
+        res.message || "Gagal mengambil QRIS statis dari gateway GoBiz",
+        "warning"
+      );
+    }
+  } catch (e) {
+    alert.show(
+      e instanceof HttpError ? e.message : "Gagal mengambil QRIS statis",
+      "error"
+    );
+  } finally {
+    gopayFetching.value = false;
   }
 }
 
@@ -600,7 +648,9 @@ onMounted(load);
                   class="size-32 flex flex-col items-center justify-center gap-1 text-base-content/60"
                 >
                   <QrCode class="size-6" />
-                  <span class="text-[10px]">Gagal muat</span>
+                  <span class="text-[10px]">
+                    {{ merchant.staticQris ? "Gagal muat" : "Belum ada QRIS" }}
+                  </span>
                 </div>
               </div>
               <div class="flex-1 min-w-0 space-y-2">
@@ -624,7 +674,7 @@ onMounted(load);
                     String QRIS
                   </p>
                   <code class="block font-mono text-[11px] bg-base-200 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto">
-                    {{ merchant.staticQris }}
+                    {{ merchant.staticQris ?? "(belum ada — ambil dari GoBiz lewat Edit)" }}
                   </code>
                 </div>
               </div>
@@ -971,10 +1021,6 @@ onMounted(load);
             <Input id="edit-email" v-model="editForm.email" type="email" class="mt-1" />
           </div>
           <div>
-            <Label for="edit-qris" class="text-xs uppercase tracking-wider">String QRIS</Label>
-            <Input id="edit-qris" v-model="editForm.staticQris" class="mt-1 font-mono text-xs" />
-          </div>
-          <div>
             <Label class="text-xs uppercase tracking-wider">Tipe QRIS</Label>
             <div class="flex gap-2 mt-1">
               <Button
@@ -994,6 +1040,10 @@ onMounted(load);
                 Gopay
               </Button>
             </div>
+          </div>
+          <div v-if="editForm.qrisMode === 'OTHERS'">
+            <Label for="edit-qris" class="text-xs uppercase tracking-wider">String QRIS</Label>
+            <Input id="edit-qris" v-model="editForm.staticQris" class="mt-1 font-mono text-xs" />
           </div>
           <div v-if="editForm.qrisMode === 'GOPAY'" class="space-y-3 rounded-md border border-base-300 p-3">
             <div class="flex gap-2">
@@ -1037,6 +1087,34 @@ onMounted(load);
                 Test koneksi
               </Button>
             </template>
+            <div class="rounded-md border border-base-300 bg-base-200/50 p-3 flex flex-col gap-2">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-[11px] uppercase tracking-wider text-base-content/60">
+                  QRIS statis GoBiz
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  :disabled="gopayFetching"
+                  @click="fetchEditGopayStaticQris"
+                >
+                  <Loader2 v-if="gopayFetching" class="size-3.5 animate-spin" />
+                  <RefreshCw v-else class="size-3.5" />
+                  Ambil dari GoBiz
+                </Button>
+              </div>
+              <p v-if="gopayStaticQris" class="font-mono text-[11px] bg-base-100 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto">
+                {{ gopayStaticQris }}
+              </p>
+              <p v-else class="text-xs text-base-content/60">
+                {{
+                  gopayFetching
+                    ? "Mengambil QRIS statis dari gateway GoBiz..."
+                    : "Belum ada QRIS statis. Klik 'Ambil dari GoBiz' untuk memuat otomatis, atau simpan perubahan (server akan mengambil dari gateway)."
+                }}
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>

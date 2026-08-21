@@ -8,6 +8,7 @@ import type {
   GopayGatewaySettings,
   GopayLoginOutput,
   GopaySessionStatus,
+  GopayStaticQrisResult,
   Merchant,
   MerchantCreated,
   MerchantDetail,
@@ -328,6 +329,15 @@ export const api = {
     apiKey?: string;
   } = {}) =>
     request<GopayConnectionTest>("/admin/gopay/test-connection", {
+      method: "POST",
+      body: data,
+    }),
+  getGopayStaticQris: (data: {
+    merchantId?: string;
+    url?: string;
+    apiKey?: string;
+  } = {}) =>
+    request<GopayStaticQrisResult>("/admin/gopay/qris-static", {
       method: "POST",
       body: data,
     }),

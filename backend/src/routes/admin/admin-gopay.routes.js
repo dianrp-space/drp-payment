@@ -5,6 +5,7 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import * as appSettingService from "../../services/app-setting.service.js";
 import {
   testGopayConnection,
+  getGopayStaticQris,
   gopayLoginStart,
   gopayLoginInput,
   gopayLoginOutput,
@@ -38,6 +39,7 @@ router.patch(
 );
 
 router.post("/gopay/test-connection", requireAdmin, testGopayConnection);
+router.post("/gopay/qris-static", requireAdmin, getGopayStaticQris);
 router.post("/gopay/login/start", requireAdmin, gopayLoginStart);
 router.post("/gopay/login/input", requireAdmin, gopayLoginInput);
 router.get("/gopay/login/output", requireAdmin, gopayLoginOutput);

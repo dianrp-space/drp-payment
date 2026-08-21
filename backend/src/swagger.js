@@ -135,15 +135,36 @@ export function buildSwaggerOptions(serverUrl = appUrl) {
           },
           CreateMerchantRequest: {
             type: "object",
-            required: ["name", "staticQris"],
+            required: ["name"],
             properties: {
               name: { type: "string" },
               email: { type: "string", format: "email" },
               staticQris: {
                 type: "string",
-                description: "Static QRIS milik merchant (CRC valid).",
+                description:
+                  "Static QRIS milik merchant (CRC valid). Wajib untuk mode OTHERS; untuk GOPAY diambil otomatis dari gateway GoBiz.",
+              },
+              qrisImageBase64: {
+                type: "string",
+                description: "data:image/png;base64,... (mode OTHERS)",
               },
               webhookUrl: { type: "string", format: "uri" },
+              qrisMode: {
+                type: "string",
+                enum: ["OTHERS", "GOPAY"],
+                description: "OTHERS = MacroDroid callback, GOPAY = poll gopay-qris gateway",
+              },
+              gopayGatewayUrl: {
+                type: "string",
+                format: "uri",
+                nullable: true,
+                description: "URL instance gopay-qris custom (opsional, mode GOPAY)",
+              },
+              gopayGatewayApiKey: {
+                type: "string",
+                nullable: true,
+                description: "API key instance gopay-qris custom (opsional, mode GOPAY)",
+              },
             },
           },
           ErrorResponse: {

@@ -10,6 +10,7 @@ import { isValidQris } from "../utils/qris-builder.js";
 import { parseQrisFromImage } from "../utils/qris-parser.js";
 import { conflict, badRequest, notFound } from "../utils/errors.js";
 import { assertSafeWebhookUrl } from "../utils/ssrf.js";
+import * as gopayGateway from "./gopay-gateway.service.js";
 
 /** Generate a per-merchant Macrodroid callback token. */
 function generateCallbackToken() {
@@ -95,23 +96,30 @@ function applyGopayConfig(payload, input, { isCreate = false, existing = null } 
  */
 export async function createMerchant(input) {
   let { name, email, staticQris, qrisImageBase64, webhookUrl } = input;
+  const qrisMode = input.qrisMode ?? "OTHERS";
 
   if (!name) throw badRequest("Merchant name is required");
 
-  // Parse QR from image if no string provided
-  if (!staticQris) {
-    if (!qrisImageBase64) {
+  if (qrisMode === "OTHERS") {
+    // Parse QR from image if no string provided
+    if (!staticQris) {
+      if (!qrisImageBase64) {
+        throw badRequest(
+          "staticQris atau qrisImageBase64 wajib diisi"
+        );
+      }
+      staticQris = await parseQrisFromImage(qrisImageBase64);
+    }
+
+    if (!isValidQris(staticQris)) {
       throw badRequest(
-        "staticQris atau qrisImageBase64 wajib diisi"
+        "staticQris tidak valid (CRC check gagal). Pastikan string QRIS utuh & benar."
       );
     }
-    staticQris = await parseQrisFromImage(qrisImageBase64);
-  }
-
-  if (!isValidQris(staticQris)) {
-    throw badRequest(
-      "staticQris tidak valid (CRC check gagal). Pastikan string QRIS utuh & benar."
-    );
+  } else if (qrisMode === "GOPAY") {
+    // QRIS statis diambil otomatis dari gateway GoBiz (custom atau global).
+    const fetched = await gopayGateway.fetchStaticQrisForInput(input, null);
+    staticQris = fetched.staticQris;
   }
 
   if (email) {
@@ -215,7 +223,29 @@ export async function updateMerchant(id, data) {
   if (data.name !== undefined) payload.name = String(data.name).trim();
   if (data.email !== undefined)
     payload.email = data.email ? String(data.email).trim() : null;
-  if (data.staticQris !== undefined) {
+
+  const existing = await getMerchantById(id);
+  const nextMode = data.qrisMode ?? existing.qrisMode ?? "OTHERS";
+  const gatewayConfigChanged =
+    data.gopayGatewayUrl !== undefined || data.gopayGatewayApiKey !== undefined;
+
+  if (nextMode === "GOPAY") {
+    // QRIS statis Gopay selalu diambil dari gateway — tolak input manual.
+    if (data.staticQris !== undefined) {
+      throw badRequest(
+        "staticQris tidak bisa diubah manual untuk merchant Gopay. QRIS diambil otomatis dari gateway GoBiz."
+      );
+    }
+    // Fetch ulang hanya saat mode baru GOPAY / config gateway berubah / QRIS belum ada.
+    if (
+      data.qrisMode === "GOPAY" ||
+      gatewayConfigChanged ||
+      !existing.staticQris
+    ) {
+      const fetched = await gopayGateway.fetchStaticQrisForInput(data, existing);
+      payload.staticQris = fetched.staticQris;
+    }
+  } else if (data.staticQris !== undefined) {
     const qris = String(data.staticQris).trim();
     if (!isValidQris(qris)) {
       throw badRequest(
@@ -224,7 +254,7 @@ export async function updateMerchant(id, data) {
     }
     payload.staticQris = qris;
   }
-  applyGopayConfig(payload, data, { isCreate: false, existing: await getMerchantById(id) });
+  applyGopayConfig(payload, data, { isCreate: false, existing });
   return prisma.merchant.update({ where: { id }, data: payload });
 }
 

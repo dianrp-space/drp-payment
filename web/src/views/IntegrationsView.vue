@@ -8,14 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { api, HttpError } from "@/lib/api";
+import { useAlert } from "@/composables/useAlert";
+import AlertFeedback from "@/components/AlertFeedback.vue";
 import GopayLoginConsole from "@/components/GopayLoginConsole.vue";
 
+const alert = useAlert();
 const gopayUrl = ref("");
 const gopayApiKey = ref("");
 const gopayHasKey = ref(false);
 const gopayHint = ref<string | null>(null);
 const savingGopay = ref(false);
 const testingGopay = ref(false);
+const gopayFetching = ref(false);
+const gopayStaticQris = ref<string | null>(null);
 
 async function loadGopaySettings() {
   try {
@@ -58,12 +63,59 @@ async function testGlobalGopay() {
         ? { url: gopayUrl.value.trim(), apiKey: gopayApiKey.value.trim() }
         : {};
     const res = await api.testGopayConnection(body);
-    if (res.success) toast.success(res.message || "Koneksi Gopay berhasil");
-    else toast.error(res.message || "Koneksi Gopay gagal");
+    if (res.success) {
+      // Cek juga QRIS statis dari gateway untuk info lengkap
+      let qrisInfo = "";
+      try {
+        const qrisRes = await api.getGopayStaticQris(body);
+        if (qrisRes.success && qrisRes.qrisStatic) {
+          gopayStaticQris.value = qrisRes.qrisStatic;
+          qrisInfo = " QRIS statis GoBiz: ADA.";
+        } else {
+          qrisInfo = " QRIS statis GoBiz: BELUM ADA — isi QRIS_STATIC di .env gateway.";
+        }
+      } catch {
+        qrisInfo = " (tidak bisa cek QRIS statis)";
+      }
+      alert.show(
+        `Koneksi Gopay berhasil. Token ${res.tokenStatus === "invalid" ? "tidak valid" : "valid"}.${qrisInfo}`,
+        "success"
+      );
+    } else {
+      alert.show(res.message || "Koneksi Gopay gagal", "error");
+    }
   } catch (e) {
-    toast.error(e instanceof HttpError ? e.message : "Gagal tes koneksi");
+    alert.show(e instanceof HttpError ? e.message : "Gagal tes koneksi", "error");
   } finally {
     testingGopay.value = false;
+  }
+}
+
+async function fetchGlobalGopayStaticQris() {
+  const body =
+    gopayUrl.value.trim() && gopayApiKey.value.trim()
+      ? { url: gopayUrl.value.trim(), apiKey: gopayApiKey.value.trim() }
+      : {};
+  gopayFetching.value = true;
+  try {
+    const res = await api.getGopayStaticQris(body);
+    if (res.success && res.qrisStatic) {
+      gopayStaticQris.value = res.qrisStatic;
+      alert.show("QRIS statis GoBiz berhasil diambil", "success");
+    } else {
+      gopayStaticQris.value = null;
+      alert.show(
+        res.message || "QRIS statis belum tersedia di gateway",
+        "warning"
+      );
+    }
+  } catch (e) {
+    alert.show(
+      e instanceof HttpError ? e.message : "Gagal mengambil QRIS statis",
+      "error"
+    );
+  } finally {
+    gopayFetching.value = false;
   }
 }
 
@@ -135,7 +187,39 @@ onMounted(loadGopaySettings);
       </form>
 
       <Separator class="my-5" />
+
+      <div class="flex flex-col gap-2 rounded-md border border-base-300 p-3">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-xs uppercase tracking-wider text-base-content/60">
+            QRIS statis GoBiz (global)
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            @click="fetchGlobalGopayStaticQris"
+          >
+            <Loader2 v-if="gopayFetching" class="size-3.5 animate-spin" />
+            Ambil QRIS statis
+          </Button>
+        </div>
+        <p v-if="gopayStaticQris" class="font-mono text-[11px] bg-base-200 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto">
+          {{ gopayStaticQris }}
+        </p>
+        <p v-else class="text-xs text-base-content/60">
+          Belum dimuat. Klik "Ambil QRIS statis" untuk melihat QRIS_STATIC dari .env gateway.
+        </p>
+      </div>
+
+      <Separator class="my-5" />
       <GopayLoginConsole />
     </Card>
+
+    <AlertFeedback
+      :type="alert.type.value"
+      :visible="alert.visible.value"
+      :message="alert.message.value"
+      @dismiss="alert.dismiss"
+    />
   </div>
 </template>

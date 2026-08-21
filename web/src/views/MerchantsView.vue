@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import {
-  Plus, Loader2, Store, Upload, X, Trash2,
+  Plus, Loader2, Store, Upload, X, Trash2, RefreshCw,
 } from "@lucide/vue";
 import { toast } from "vue-sonner";
 import {
@@ -69,6 +69,8 @@ const form = ref({
   gopayGatewayApiKey: "",
 });
 const testingGopay = ref(false);
+const gopayFetching = ref(false);
+const gopayStaticQris = ref<string | null>(null);
 const qrisPreviewUrl = ref<string | null>(null);
 const deleting = ref<string | null>(null);
 const alert = useAlert();
@@ -148,12 +150,55 @@ function clearQrisImage() {
   }
 }
 
+async function fetchGopayStaticQris() {
+  gopayFetching.value = true;
+  gopayStaticQris.value = null;
+  try {
+    const body =
+      form.value.useCustomGateway &&
+      form.value.gopayGatewayUrl.trim() &&
+      form.value.gopayGatewayApiKey.trim()
+        ? { url: form.value.gopayGatewayUrl.trim(), apiKey: form.value.gopayGatewayApiKey.trim() }
+        : {};
+    const res = await api.getGopayStaticQris(body);
+    if (res.success && res.qrisStatic) {
+      gopayStaticQris.value = res.qrisStatic;
+      alert.show(
+        `QRIS statis berhasil diambil dari gateway ${res.source === "merchant" ? "pribadi" : "global"}. QRIS ini akan dipakai untuk merchant ini.`,
+        "success"
+      );
+    } else {
+      alert.show(
+        res.message || "Gagal mengambil QRIS statis dari gateway GoBiz",
+        "warning"
+      );
+    }
+  } catch (e) {
+    alert.show(
+      e instanceof HttpError ? e.message : "Gagal mengambil QRIS statis",
+      "error"
+    );
+  } finally {
+    gopayFetching.value = false;
+  }
+}
+
+function selectQrisMode(mode: QrisMode) {
+  form.value.qrisMode = mode;
+  if (mode === "GOPAY") {
+    // Auto-fetch QRIS statis dari gateway (global atau custom)
+    fetchGopayStaticQris();
+  } else {
+    gopayStaticQris.value = null;
+  }
+}
+
 async function handleCreate() {
   if (!form.value.name.trim()) {
     toast.error("Nama merchant wajib diisi");
     return;
   }
-  if (!form.value.staticQris.trim() && !form.value.qrisImageBase64) {
+  if (form.value.qrisMode === "OTHERS" && !form.value.staticQris.trim() && !form.value.qrisImageBase64) {
     toast.error("Upload gambar QRIS atau masukkan string QRIS manual");
     return;
   }
@@ -173,8 +218,12 @@ async function handleCreateConfirmed() {
     const res = await api.createMerchant({
       name: form.value.name.trim(),
       email: form.value.email.trim() || undefined,
-      staticQris: form.value.staticQris.trim() || undefined,
-      qrisImageBase64: form.value.qrisImageBase64 || undefined,
+      ...(form.value.qrisMode === "OTHERS"
+        ? {
+            staticQris: form.value.staticQris.trim() || undefined,
+            qrisImageBase64: form.value.qrisImageBase64 || undefined,
+          }
+        : {}),
       webhookUrl: form.value.webhookUrl.trim() || undefined,
       qrisMode: form.value.qrisMode,
       ...(form.value.qrisMode === "GOPAY" && form.value.useCustomGateway
@@ -203,6 +252,7 @@ async function handleCreateConfirmed() {
       gopayGatewayApiKey: "",
     };
     clearQrisImage();
+    gopayStaticQris.value = null;
     await load();
   } catch (e) {
     const msg = e instanceof HttpError ? e.message : "Gagal membuat merchant";
@@ -248,10 +298,16 @@ async function testCreateGopay() {
       url: form.value.gopayGatewayUrl.trim(),
       apiKey: form.value.gopayGatewayApiKey.trim(),
     });
-    if (res.success) toast.success(res.message || "Koneksi Gopay berhasil");
-    else toast.error(res.message || "Koneksi Gopay gagal");
+    if (res.success) {
+      alert.show(
+        `Koneksi Gopay berhasil. Token ${res.tokenStatus === "invalid" ? "tidak valid" : "valid"}. ${res.message || ""}`,
+        "success"
+      );
+    } else {
+      alert.show(res.message || "Koneksi Gopay gagal", "error");
+    }
   } catch (e) {
-    toast.error(e instanceof HttpError ? e.message : "Gagal tes koneksi");
+    alert.show(e instanceof HttpError ? e.message : "Gagal tes koneksi", "error");
   } finally {
     testingGopay.value = false;
   }
@@ -304,8 +360,35 @@ onMounted(load);
               <Input id="m-email" v-model="form.email" type="email" placeholder="hi@toko.id" :disabled="creating" />
             </div>
 
-            <!-- QRIS image upload -->
             <div class="flex flex-col gap-1.5">
+              <Label>Tipe QRIS</Label>
+              <div class="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="form.qrisMode === 'OTHERS' ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="selectQrisMode('OTHERS')"
+                >
+                  Others
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="form.qrisMode === 'GOPAY' ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="selectQrisMode('GOPAY')"
+                >
+                  Gopay
+                </Button>
+              </div>
+              <p class="text-[11px] text-base-content/60">
+                Gopay: cek pembayaran via API GoBiz. Others: flow MacroDroid seperti biasa.
+              </p>
+            </div>
+
+            <!-- QRIS image upload (hanya untuk mode Others; Gopay memakai QRIS statis dari API GoBiz) -->
+            <div v-if="form.qrisMode === 'OTHERS'" class="flex flex-col gap-1.5">
               <Label>QRIS merchant</Label>
               <div v-if="!qrisPreviewUrl" class="flex gap-2">
                 <label
@@ -348,33 +431,6 @@ onMounted(load);
               />
             </div>
 
-            <div class="flex flex-col gap-1.5">
-              <Label>Tipe QRIS</Label>
-              <div class="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  :variant="form.qrisMode === 'OTHERS' ? 'default' : 'outline'"
-                  :disabled="creating"
-                  @click="form.qrisMode = 'OTHERS'"
-                >
-                  Others
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  :variant="form.qrisMode === 'GOPAY' ? 'default' : 'outline'"
-                  :disabled="creating"
-                  @click="form.qrisMode = 'GOPAY'"
-                >
-                  Gopay
-                </Button>
-              </div>
-              <p class="text-[11px] text-base-content/60">
-                Gopay: cek pembayaran via API GoBiz. Others: flow MacroDroid seperti biasa.
-              </p>
-            </div>
-
             <div v-if="form.qrisMode === 'GOPAY'" class="flex flex-col gap-3 rounded-md border border-base-300 p-3">
               <div class="flex gap-2">
                 <Button
@@ -382,7 +438,7 @@ onMounted(load);
                   size="sm"
                   :variant="!form.useCustomGateway ? 'default' : 'outline'"
                   :disabled="creating"
-                  @click="form.useCustomGateway = false"
+                  @click="form.useCustomGateway = false; fetchGopayStaticQris()"
                 >
                   Pakai gateway global
                 </Button>
@@ -391,7 +447,7 @@ onMounted(load);
                   size="sm"
                   :variant="form.useCustomGateway ? 'default' : 'outline'"
                   :disabled="creating"
-                  @click="form.useCustomGateway = true"
+                  @click="form.useCustomGateway = true; fetchGopayStaticQris()"
                 >
                   Gateway sendiri
                 </Button>
@@ -433,6 +489,35 @@ onMounted(load);
               <p v-else class="text-[11px] text-base-content/60">
                 Menggunakan URL &amp; API key yang diisi di Integrasi → Gopay Gateway.
               </p>
+
+              <div class="rounded-md border border-base-300 bg-base-200/50 p-3 flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-[11px] uppercase tracking-wider text-base-content/60">
+                    QRIS statis GoBiz
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    :disabled="creating || gopayFetching"
+                    @click="fetchGopayStaticQris"
+                  >
+                    <Loader2 v-if="gopayFetching" class="size-3.5 animate-spin" />
+                    <RefreshCw v-else class="size-3.5" />
+                    Ambil dari GoBiz
+                  </Button>
+                </div>
+                <p v-if="gopayStaticQris" class="font-mono text-[11px] bg-base-100 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto">
+                  {{ gopayStaticQris }}
+                </p>
+                <p v-else class="text-xs text-base-content/60">
+                  {{
+                    gopayFetching
+                      ? "Mengambil QRIS statis dari gateway GoBiz..."
+                      : "Belum ada QRIS statis. Klik 'Ambil dari GoBiz' untuk memuat otomatis, atau simpan merchant (QRIS akan diambil otomatis oleh server)."
+                  }}
+                </p>
+              </div>
             </div>
 
             <div class="flex flex-col gap-1.5">

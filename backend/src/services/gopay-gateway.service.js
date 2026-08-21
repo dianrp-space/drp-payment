@@ -1,6 +1,8 @@
 import { prisma } from "../config/db.js";
 import { logger } from "../config/logger.js";
 import { decryptApiKey } from "../utils/crypto.js";
+import { isValidQris } from "../utils/qris-builder.js";
+import { badRequest } from "../utils/errors.js";
 import { dispatchPaymentSuccess } from "./webhook.service.js";
 
 const SETTING_ID = "default";
@@ -65,6 +67,89 @@ export async function resolveGatewayConfig(merchant) {
   }
 
   return null;
+}
+
+/**
+ * Ambil QRIS statis dari instance gopay-qris.
+ * @param {string} url
+ * @param {string} apiKey
+ */
+export async function fetchStaticQris(url, apiKey) {
+  try {
+    const result = await gatewayFetch(normalizeGatewayUrl(url), apiKey, {
+      method: "GET",
+      path: "qris-static",
+    });
+    return {
+      ok: result.ok,
+      status: result.status,
+      body: result.json ?? { success: false, message: result.text?.slice(0, 500) },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: 502,
+      body: {
+        success: false,
+        message: err.name === "AbortError" ? "timeout (10s)" : err.message,
+      },
+    };
+  }
+}
+
+/**
+ * Resolve config gateway (custom URL/key jika diberikan, else global/merchant)
+ * lalu fetch QRIS statis dan validasi CRC. Throw badRequest dengan pesan jelas
+ * jika gateway tidak terkonfigurasi / QRIS_STATIC kosong / QRIS tidak valid.
+ *
+ * @param {{ gopayGatewayUrl?: string|null, gopayGatewayApiKey?: string|null, merchantId?: string }} input
+ * @param {{ gopayGatewayUrl?: string|null, gopayGatewayApiKeyEncrypted?: string|null }} [merchant]
+ * @returns {Promise<{ staticQris: string, source: string }>}
+ */
+export async function fetchStaticQrisForInput(input = {}, merchant = null) {
+  let cfg = null;
+  let source = "global";
+
+  if (input.gopayGatewayUrl && input.gopayGatewayApiKey) {
+    cfg = {
+      url: normalizeGatewayUrl(input.gopayGatewayUrl),
+      apiKey: input.gopayGatewayApiKey,
+      source: "merchant",
+    };
+  } else if (merchant) {
+    cfg = await resolveGatewayConfig(merchant);
+  } else {
+    cfg = await resolveGatewayConfig(null);
+  }
+
+  if (!cfg) {
+    throw badRequest(
+      "Gateway Gopay belum dikonfigurasi. Isi URL & API key gateway dulu."
+    );
+  }
+  source = cfg.source ?? source;
+
+  const result = await fetchStaticQris(cfg.url, cfg.apiKey);
+  if (!result.ok) {
+    const msg = result.body?.message || `HTTP ${result.status}`;
+    throw badRequest(
+      `Gagal mengambil QRIS statis dari gateway Gopay (${msg}). Pastikan QRIS_STATIC diisi di .env gateway dan sesi GoBiz aktif.`
+    );
+  }
+
+  const staticQris = String(result.body?.data?.qris_static ?? "").trim();
+  if (!staticQris) {
+    throw badRequest(
+      "Gateway Gopay belum memiliki QRIS_STATIC. Isi QRIS_STATIC di .env gateway."
+    );
+  }
+  if (!isValidQris(staticQris)) {
+    throw badRequest(
+      "QRIS statis dari gateway tidak valid (CRC check gagal). Periksa QRIS_STATIC di .env gateway."
+    );
+  }
+
+  return { staticQris, source };
 }
 
 async function gatewayFetch(url, apiKey, { method = "GET", path, query, body } = {}) {

@@ -78,7 +78,7 @@ export const listMerchants = asyncHandler(async (_req, res) => {
 
 export const getMerchant = asyncHandler(async (req, res) => {
   const merchant = await merchantService.getMerchantById(req.params.id);
-  const tags = parseTLV(merchant.staticQris);
+  const tags = merchant.staticQris ? parseTLV(merchant.staticQris) : [];
   res.json({
     merchant: {
       id: merchant.id,
@@ -88,11 +88,11 @@ export const getMerchant = asyncHandler(async (req, res) => {
       webhookUrl: merchant.webhookUrl,
       webhookSecret: merchant.webhookSecret,
       callbackToken: merchant.callbackToken,
-      staticQris: merchant.staticQris,
+      staticQris: merchant.staticQris ?? null,
       avatarPath: merchant.avatarPath ?? null,
       qrisName: getTagValue(tags, "59"),
       qrisCity: getTagValue(tags, "60"),
-      qrisProvider: getQrisProvider(merchant.staticQris),
+      qrisProvider: merchant.staticQris ? getQrisProvider(merchant.staticQris) : null,
       status: merchant.status,
       createdAt: merchant.createdAt,
       ...merchantService.gopayPublicFields(merchant),
@@ -184,6 +184,11 @@ export const deleteMerchantAvatar = asyncHandler(async (req, res) => {
 
 export const getMerchantQrImage = asyncHandler(async (req, res) => {
   const merchant = await merchantService.getMerchantById(req.params.id);
+  if (!merchant.staticQris) {
+    throw notFound(
+      "Merchant ini belum memiliki QRIS statis. Untuk Gopay, ambil dulu dari gateway GoBiz."
+    );
+  }
   const qrImageBase64 = await renderQrisImage(merchant.staticQris, "png");
   res.json({ qrImageBase64 });
 });
