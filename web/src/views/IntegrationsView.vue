@@ -28,6 +28,7 @@ async function loadGopaySettings() {
     gopayUrl.value = res.settings.gopayGatewayUrl ?? "";
     gopayHasKey.value = res.settings.hasGopayGatewayApiKey;
     gopayHint.value = res.settings.gopayGatewayApiKeyHint;
+    gopayStaticQris.value = res.settings.gopayQrisStatic;
     gopayApiKey.value = "";
   } catch (e) {
     toast.error(e instanceof HttpError ? e.message : "Gagal memuat setting Gopay");

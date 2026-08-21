@@ -96,6 +96,7 @@ function shapeGopay(row) {
     gopayGatewayUrl: row?.gopayGatewayUrl ?? null,
     hasGopayGatewayApiKey: !!row?.gopayGatewayApiKeyEncrypted,
     gopayGatewayApiKeyHint: maskSecretHint(raw),
+    gopayQrisStatic: row?.gopayQrisStatic ?? null,
   };
 }
 
@@ -141,6 +142,16 @@ export async function updateGopayGatewaySettings({ gopayGatewayUrl, gopayGateway
     where: { id: SETTING_ID },
     create: { id: SETTING_ID, ...data },
     update: data,
+  });
+  return shapeGopay(row);
+}
+
+/** Simpan QRIS statis global hasil fetch dari gateway gopay-qris. */
+export async function setGopayQrisStatic(staticQris) {
+  const row = await prisma.appSetting.upsert({
+    where: { id: SETTING_ID },
+    create: { id: SETTING_ID, gopayQrisStatic: staticQris ?? null },
+    update: { gopayQrisStatic: staticQris ?? null },
   });
   return shapeGopay(row);
 }

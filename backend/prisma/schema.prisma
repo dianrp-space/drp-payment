@@ -183,6 +183,8 @@ model AppSetting {
   // Global gopay-qris gateway (fallback jika merchant tidak isi sendiri).
   gopayGatewayUrl String?
   gopayGatewayApiKeyEncrypted String? @db.Text
+  // QRIS statis akun GoBiz global (hasil fetch dari gateway, utk tampil & auto-isi).
+  gopayQrisStatic String? @db.Text
   updatedAt     DateTime @updatedAt
 }
 

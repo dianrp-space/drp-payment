@@ -140,6 +140,7 @@ export interface GopayGatewaySettings {
   gopayGatewayUrl: string | null;
   hasGopayGatewayApiKey: boolean;
   gopayGatewayApiKeyHint: string | null;
+  gopayQrisStatic: string | null;
 }
 
 export interface GopayConnectionTest {

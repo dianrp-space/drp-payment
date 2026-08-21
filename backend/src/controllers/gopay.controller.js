@@ -4,6 +4,7 @@ import { badRequest } from "../utils/errors.js";
 import { assertSafeWebhookUrl } from "../utils/ssrf.js";
 import * as merchantService from "../services/merchant.service.js";
 import * as gopayGateway from "../services/gopay-gateway.service.js";
+import * as appSettingService from "../services/app-setting.service.js";
 
 const testSchema = z.object({
   merchantId: z.string().min(1).optional(),
@@ -48,6 +49,12 @@ export const getGopayStaticQris = asyncHandler(async (req, res) => {
   const qrisStatic = result.ok
     ? String(result.body?.data?.qris_static ?? "").trim() || null
     : null;
+
+  // Simpan QRIS statis global agar tetap tampil setelah refresh.
+  if (qrisStatic && cfg.source !== "merchant") {
+    await appSettingService.setGopayQrisStatic(qrisStatic);
+  }
+
   res.json({
     success: result.ok && !!qrisStatic,
     source: cfg.source ?? "global",
