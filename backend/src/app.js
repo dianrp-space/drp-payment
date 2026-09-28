@@ -16,6 +16,7 @@ import adminStatsRoutes from "./routes/admin/admin-stats.routes.js";
 import adminSettingsRoutes from "./routes/admin/admin-settings.routes.js";
 import backupRoutes from "./routes/admin/backup.routes.js";
 import adminGopayRoutes from "./routes/admin/admin-gopay.routes.js";
+import adminShopeepayRoutes from "./routes/admin/admin-shopeepay.routes.js";
 import callbackRoutes from "./routes/internal/callback.routes.js";
 import { legacyRouter } from "./routes/legacy.routes.js";
 
@@ -120,6 +121,7 @@ app.use("/admin", adminRoutes);
 app.use("/admin", adminStatsRoutes);
 app.use("/admin", adminSettingsRoutes);
 app.use("/admin", adminGopayRoutes);
+app.use("/admin", adminShopeepayRoutes);
 app.use("/admin", backupRoutes);
 
 // Legacy /api/* (kept for backward compatibility & QR image parsing tools)

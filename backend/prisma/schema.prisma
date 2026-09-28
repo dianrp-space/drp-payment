@@ -49,11 +49,14 @@ model Merchant {
   webhookUrl    String?
   // Static QRIS string (the merchant's personal QRIS)
   staticQris    String        @db.Text
-  // OTHERS = MacroDroid callback (default). GOPAY = poll gopay-qris gateway.
+  // OTHERS = MacroDroid callback (default). GOPAY/SHOPEEPAY = poll gateway.
   qrisMode      QrisMode      @default(OTHERS)
   // Optional per-merchant gopay-qris instance. Null = pakai setting global.
   gopayGatewayUrl String?
   gopayGatewayApiKeyEncrypted String? @db.Text
+  // Optional per-merchant qris-shopeepay instance. Null = pakai setting global.
+  shopeepayGatewayUrl String?
+  shopeepayGatewayApiKeyEncrypted String? @db.Text
   // Public path to profile photo, e.g. "/uploads/merchants/{id}.webp"
   avatarPath    String?
   status        MerchantStatus @default(ACTIVE)
@@ -74,6 +77,7 @@ enum MerchantStatus {
 enum QrisMode {
   OTHERS
   GOPAY
+  SHOPEEPAY
 }
 
 // ============================================================
@@ -185,6 +189,11 @@ model AppSetting {
   gopayGatewayApiKeyEncrypted String? @db.Text
   // QRIS statis akun GoBiz global (hasil fetch dari gateway, utk tampil & auto-isi).
   gopayQrisStatic String? @db.Text
+  // Global shopeepay gateway (fallback jika merchant tidak isi sendiri).
+  shopeepayGatewayUrl String?
+  shopeepayGatewayApiKeyEncrypted String? @db.Text
+  // QRIS statis akun ShopeePay global (hasil fetch dari gateway, utk tampil & auto-isi).
+  shopeepayQrisStatic String? @db.Text
   updatedAt     DateTime @updatedAt
 }
 

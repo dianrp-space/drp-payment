@@ -14,6 +14,9 @@ import type {
   MerchantDetail,
   Paginated,
   QrisMode,
+  ShopeepayConnectionTest,
+  ShopeepayGatewaySettings,
+  ShopeepayStaticQrisResult,
   Transaction,
   TransactionDetail,
   TransactionStatus,
@@ -157,6 +160,8 @@ export const api = {
     qrisMode?: QrisMode;
     gopayGatewayUrl?: string | null;
     gopayGatewayApiKey?: string | null;
+    shopeepayGatewayUrl?: string | null;
+    shopeepayGatewayApiKey?: string | null;
   }) =>
     request<{ merchant: Merchant }>(`/admin/merchants/${id}`, {
       method: "PATCH",
@@ -171,6 +176,8 @@ export const api = {
     qrisMode?: QrisMode;
     gopayGatewayUrl?: string | null;
     gopayGatewayApiKey?: string | null;
+    shopeepayGatewayUrl?: string | null;
+    shopeepayGatewayApiKey?: string | null;
   }) =>
     request<{ merchant: MerchantCreated }>(
       "/admin/merchants",
@@ -358,5 +365,31 @@ export const api = {
   gopaySessionStatus: (merchantId?: string) =>
     request<GopaySessionStatus>("/admin/gopay/login/session-status", {
       query: { merchantId },
+    }),
+
+  getShopeepayGatewaySettings: () =>
+    request<{ settings: ShopeepayGatewaySettings }>(
+      "/admin/settings/shopeepay-gateway"
+    ),
+  updateShopeepayGatewaySettings: (data: {
+    shopeepayGatewayUrl?: string | null;
+    shopeepayGatewayApiKey?: string | null;
+  }) =>
+    request<{ settings: ShopeepayGatewaySettings }>(
+      "/admin/settings/shopeepay-gateway",
+      { method: "PATCH", body: data }
+    ),
+  testShopeepayConnection: (data: {
+    url?: string;
+    apiKey?: string;
+  } = {}) =>
+    request<ShopeepayConnectionTest>("/admin/shopeepay/test-connection", {
+      method: "POST",
+      body: data,
+    }),
+  getShopeepayStaticQris: (data: { url?: string; apiKey?: string } = {}) =>
+    request<ShopeepayStaticQrisResult>("/admin/shopeepay/qris-static", {
+      method: "POST",
+      body: data,
     }),
 };

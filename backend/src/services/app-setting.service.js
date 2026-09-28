@@ -155,3 +155,74 @@ export async function setGopayQrisStatic(staticQris) {
   });
   return shapeGopay(row);
 }
+
+function shapeShopeepay(row) {
+  const raw = decryptApiKey(row?.shopeepayGatewayApiKeyEncrypted);
+  return {
+    shopeepayGatewayUrl: row?.shopeepayGatewayUrl ?? null,
+    hasShopeepayGatewayApiKey: !!row?.shopeepayGatewayApiKeyEncrypted,
+    shopeepayGatewayApiKeyHint: maskSecretHint(raw),
+    shopeepayQrisStatic: row?.shopeepayQrisStatic ?? null,
+  };
+}
+
+export async function getShopeepayGatewaySettings() {
+  const row = await prisma.appSetting.findUnique({
+    where: { id: SETTING_ID },
+  });
+  return shapeShopeepay(row);
+}
+
+export async function updateShopeepayGatewaySettings({
+  shopeepayGatewayUrl,
+  shopeepayGatewayApiKey,
+}) {
+  const data = {};
+  if (shopeepayGatewayUrl !== undefined) {
+    const trimmed = shopeepayGatewayUrl ? String(shopeepayGatewayUrl).trim() : "";
+    if (!trimmed) {
+      data.shopeepayGatewayUrl = null;
+      data.shopeepayGatewayApiKeyEncrypted = null;
+    } else {
+      assertSafeWebhookUrl(trimmed);
+      data.shopeepayGatewayUrl = trimmed.replace(/\/+$/, "");
+    }
+  }
+  if (shopeepayGatewayApiKey !== undefined) {
+    const key = shopeepayGatewayApiKey ? String(shopeepayGatewayApiKey).trim() : "";
+    data.shopeepayGatewayApiKeyEncrypted = key ? encryptApiKey(key) : null;
+  }
+
+  const existing = await prisma.appSetting.findUnique({ where: { id: SETTING_ID } });
+  const nextUrl =
+    data.shopeepayGatewayUrl !== undefined
+      ? data.shopeepayGatewayUrl
+      : existing?.shopeepayGatewayUrl;
+  const nextHasKey =
+    data.shopeepayGatewayApiKeyEncrypted !== undefined
+      ? !!data.shopeepayGatewayApiKeyEncrypted
+      : !!existing?.shopeepayGatewayApiKeyEncrypted;
+  if (nextUrl && !nextHasKey) {
+    throw badRequest("API key gateway ShopeePay wajib jika URL diisi");
+  }
+  if (!nextUrl && nextHasKey) {
+    throw badRequest("URL gateway ShopeePay wajib jika API key diisi");
+  }
+
+  const row = await prisma.appSetting.upsert({
+    where: { id: SETTING_ID },
+    create: { id: SETTING_ID, ...data },
+    update: data,
+  });
+  return shapeShopeepay(row);
+}
+
+/** Simpan QRIS statis global hasil fetch dari gateway qris-shopeepay. */
+export async function setShopeepayQrisStatic(staticQris) {
+  const row = await prisma.appSetting.upsert({
+    where: { id: SETTING_ID },
+    create: { id: SETTING_ID, shopeepayQrisStatic: staticQris ?? null },
+    update: { shopeepayQrisStatic: staticQris ?? null },
+  });
+  return shapeShopeepay(row);
+}

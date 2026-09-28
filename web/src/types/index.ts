@@ -1,6 +1,6 @@
 export type TransactionStatus = "PENDING" | "PAID" | "EXPIRED" | "FAILED";
 export type MerchantStatus = "ACTIVE" | "SUSPENDED";
-export type QrisMode = "OTHERS" | "GOPAY";
+export type QrisMode = "OTHERS" | "GOPAY" | "SHOPEEPAY";
 export type WebhookStatus = "NONE" | "PENDING" | "SENT" | "FAILED";
 
 export interface Transaction {
@@ -82,6 +82,9 @@ export interface MerchantDetail extends Merchant {
   gopayGatewayUrl: string | null;
   hasGopayGatewayApiKey: boolean;
   gopayGatewayApiKeyHint: string | null;
+  shopeepayGatewayUrl: string | null;
+  hasShopeepayGatewayApiKey: boolean;
+  shopeepayGatewayApiKeyHint: string | null;
 }
 
 export interface MerchantCreated extends Merchant {
@@ -151,6 +154,28 @@ export interface GopayConnectionTest {
 }
 
 export interface GopayStaticQrisResult {
+  success: boolean;
+  source?: "global" | "merchant";
+  message?: string;
+  qrisStatic?: string | null;
+  tokenStatus?: string | null;
+}
+
+export interface ShopeepayGatewaySettings {
+  shopeepayGatewayUrl: string | null;
+  hasShopeepayGatewayApiKey: boolean;
+  shopeepayGatewayApiKeyHint: string | null;
+  shopeepayQrisStatic: string | null;
+}
+
+export interface ShopeepayConnectionTest {
+  success: boolean;
+  tokenStatus?: string | null;
+  message?: string;
+  status?: number;
+}
+
+export interface ShopeepayStaticQrisResult {
   success: boolean;
   source?: "global" | "merchant";
   message?: string;

@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { toast } from "vue-sonner";
 import { Loader2, Save, Plug } from "@lucide/vue";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import AlertFeedback from "@/components/AlertFeedback.vue";
 import GopayLoginConsole from "@/components/GopayLoginConsole.vue";
 
 const alert = useAlert();
+const activeTab = ref("gopay");
 const gopayUrl = ref("");
 const gopayApiKey = ref("");
 const gopayHasKey = ref(false);
@@ -21,6 +23,15 @@ const savingGopay = ref(false);
 const testingGopay = ref(false);
 const gopayFetching = ref(false);
 const gopayStaticQris = ref<string | null>(null);
+
+const shopeepayUrl = ref("");
+const shopeepayApiKey = ref("");
+const shopeepayHasKey = ref(false);
+const shopeepayHint = ref<string | null>(null);
+const savingShopeepay = ref(false);
+const testingShopeepay = ref(false);
+const shopeepayFetching = ref(false);
+const shopeepayStaticQris = ref<string | null>(null);
 
 async function loadGopaySettings() {
   try {
@@ -120,7 +131,116 @@ async function fetchGlobalGopayStaticQris() {
   }
 }
 
-onMounted(loadGopaySettings);
+async function loadShopeepaySettings() {
+  try {
+    const res = await api.getShopeepayGatewaySettings();
+    shopeepayUrl.value = res.settings.shopeepayGatewayUrl ?? "";
+    shopeepayHasKey.value = res.settings.hasShopeepayGatewayApiKey;
+    shopeepayHint.value = res.settings.shopeepayGatewayApiKeyHint;
+    shopeepayStaticQris.value = res.settings.shopeepayQrisStatic;
+    shopeepayApiKey.value = "";
+  } catch (e) {
+    toast.error(
+      e instanceof HttpError ? e.message : "Gagal memuat setting ShopeePay"
+    );
+  }
+}
+
+async function saveShopeepaySettings() {
+  savingShopeepay.value = true;
+  try {
+    const body: {
+      shopeepayGatewayUrl?: string | null;
+      shopeepayGatewayApiKey?: string | null;
+    } = {
+      shopeepayGatewayUrl: shopeepayUrl.value.trim() || null,
+    };
+    if (shopeepayApiKey.value.trim())
+      body.shopeepayGatewayApiKey = shopeepayApiKey.value.trim();
+    if (!shopeepayUrl.value.trim()) body.shopeepayGatewayApiKey = null;
+    const res = await api.updateShopeepayGatewaySettings(body);
+    shopeepayUrl.value = res.settings.shopeepayGatewayUrl ?? "";
+    shopeepayHasKey.value = res.settings.hasShopeepayGatewayApiKey;
+    shopeepayHint.value = res.settings.shopeepayGatewayApiKeyHint;
+    shopeepayApiKey.value = "";
+    toast.success("Setting ShopeePay disimpan");
+  } catch (e) {
+    toast.error(
+      e instanceof HttpError ? e.message : "Gagal menyimpan setting ShopeePay"
+    );
+  } finally {
+    savingShopeepay.value = false;
+  }
+}
+
+function shopeepayInputOverride() {
+  return shopeepayUrl.value.trim() && shopeepayApiKey.value.trim()
+    ? { url: shopeepayUrl.value.trim(), apiKey: shopeepayApiKey.value.trim() }
+    : {};
+}
+
+async function testShopeepayConnection() {
+  testingShopeepay.value = true;
+  try {
+    const res = await api.testShopeepayConnection(shopeepayInputOverride());
+    if (res.success) {
+      let qrisInfo = "";
+      try {
+        const qrisRes = await api.getShopeepayStaticQris(
+          shopeepayInputOverride()
+        );
+        if (qrisRes.success && qrisRes.qrisStatic) {
+          shopeepayStaticQris.value = qrisRes.qrisStatic;
+          qrisInfo = " QRIS statis ShopeePay: ADA.";
+        } else {
+          qrisInfo =
+            " QRIS statis ShopeePay: BELUM ADA — isi QRIS_STATIC di .env gateway.";
+        }
+      } catch {
+        qrisInfo = " (tidak bisa cek QRIS statis)";
+      }
+      alert.show(
+        `Koneksi ShopeePay berhasil. Token ${res.tokenStatus === "invalid" ? "tidak valid" : "valid"}.${qrisInfo}`,
+        "success"
+      );
+    } else {
+      alert.show(res.message || "Koneksi ShopeePay gagal", "error");
+    }
+  } catch (e) {
+    alert.show(e instanceof HttpError ? e.message : "Gagal tes koneksi", "error");
+  } finally {
+    testingShopeepay.value = false;
+  }
+}
+
+async function fetchShopeepayStaticQris() {
+  shopeepayFetching.value = true;
+  try {
+    const res = await api.getShopeepayStaticQris(shopeepayInputOverride());
+    if (res.success && res.qrisStatic) {
+      shopeepayStaticQris.value = res.qrisStatic;
+      alert.show("QRIS statis ShopeePay berhasil diambil", "success");
+    } else {
+      shopeepayStaticQris.value = null;
+      alert.show(
+        res.message || "QRIS statis belum tersedia di gateway",
+        "warning"
+      );
+    }
+  } catch (e) {
+    alert.show(
+      e instanceof HttpError ? e.message : "Gagal mengambil QRIS statis",
+      "error"
+    );
+  } finally {
+    shopeepayFetching.value = false;
+  }
+}
+
+onMounted(() => {
+  loadGopaySettings();
+  loadShopeepaySettings();
+});
 </script>
 
 <template>
@@ -135,6 +255,13 @@ onMounted(loadGopaySettings);
       </p>
     </header>
 
+    <Tabs v-model="activeTab" class="gap-4">
+      <TabsList>
+        <TabsTrigger value="gopay">GoPay</TabsTrigger>
+        <TabsTrigger value="shopeepay">ShopeePay</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="gopay">
     <Card class="p-6">
       <div class="flex items-start justify-between gap-4 mb-1">
         <div>
@@ -215,6 +342,98 @@ onMounted(loadGopaySettings);
       <Separator class="my-5" />
       <GopayLoginConsole />
     </Card>
+      </TabsContent>
+
+      <TabsContent value="shopeepay">
+    <Card class="p-6">
+      <div class="flex items-start justify-between gap-4 mb-1">
+        <div>
+          <h2 class="font-display text-2xl italic">ShopeePay Gateway (Global)</h2>
+          <p class="text-xs text-base-content/60 mt-1">
+            Instance qris-shopeepay default. Verifikasi pembayaran lewat polling
+            transaksi dari akun ShopeePay merchant.
+          </p>
+        </div>
+      </div>
+      <Separator class="mb-5" />
+
+      <form @submit.prevent="saveShopeepaySettings" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5">
+          <Label for="shopeepay-url" class="text-xs uppercase tracking-wider">
+            URL gateway
+          </Label>
+          <Input
+            id="shopeepay-url"
+            v-model="shopeepayUrl"
+            placeholder="https://shopee.domainkamu.com"
+            class="font-mono text-xs"
+            :disabled="savingShopeepay"
+          />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label for="shopeepay-key" class="text-xs uppercase tracking-wider">
+            API Key
+          </Label>
+          <Input
+            id="shopeepay-key"
+            v-model="shopeepayApiKey"
+            type="password"
+            :placeholder="shopeepayHasKey ? `Tersimpan ${shopeepayHint ?? ''} — isi untuk ganti` : 'API_KEY dari .env qris-shopeepay'"
+            class="font-mono text-xs"
+            :disabled="savingShopeepay"
+          />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <Button type="submit" :disabled="savingShopeepay">
+            <Loader2 v-if="savingShopeepay" class="size-4 animate-spin" />
+            <Save v-else class="size-4" />
+            Simpan
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="testingShopeepay"
+            @click="testShopeepayConnection"
+          >
+            <Loader2 v-if="testingShopeepay" class="size-4 animate-spin" />
+            <Plug v-else class="size-4" />
+            Test koneksi
+          </Button>
+        </div>
+      </form>
+
+      <Separator class="my-5" />
+
+      <div class="flex flex-col gap-2 rounded-md border border-base-300 p-3">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-xs uppercase tracking-wider text-base-content/60">
+            QRIS statis ShopeePay (global)
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            :disabled="shopeepayFetching"
+            @click="fetchShopeepayStaticQris"
+          >
+            <Loader2 v-if="shopeepayFetching" class="size-3.5 animate-spin" />
+            Ambil QRIS statis
+          </Button>
+        </div>
+        <p
+          v-if="shopeepayStaticQris"
+          class="font-mono text-[11px] bg-base-200 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto"
+        >
+          {{ shopeepayStaticQris }}
+        </p>
+        <p v-else class="text-xs text-base-content/60">
+          Belum dimuat. Klik "Ambil QRIS statis" untuk membaca QRIS_STATIC dari
+          .env gateway.
+        </p>
+      </div>
+    </Card>
+      </TabsContent>
+    </Tabs>
 
     <AlertFeedback
       :type="alert.type.value"
