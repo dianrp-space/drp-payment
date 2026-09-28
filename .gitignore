@@ -6,6 +6,8 @@ backend/dist/
 web/dist/
 release/
 .deploy.env
+.deploy-state
+.deploy.lock
 node_modules/
 backend/node_modules/
 web/node_modules/
