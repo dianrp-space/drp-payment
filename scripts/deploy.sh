@@ -64,8 +64,24 @@ confirm() {
   [[ "$reply" =~ ^[Yy]$ ]]
 }
 
+# ------------------------------------------------- re-exec as the app user ----
+# PM2 punya daemon per user. Kalau script dijalankan sebagai root, pm2 yang
+# disentil akan membuat instance PM2 yang berbeda dari yang dipakai aplikasi
+# (biasanya milik user non-root). Jadi teruskan ke user aplikasi itu.
+DEPLOY_APP_USER="${DEPLOY_APP_USER:-$(id -un)}"
+if [[ "$(id -u)" -eq 0 && "$DEPLOY_APP_USER" != "root" && -z "${DEPLOY_REEXEC:-}" ]]; then
+  echo "==> Menjalankan ulang sebagai user '$DEPLOY_APP_USER' (supaya pm2 instance-nya sama)"
+  exec env DEPLOY_REEXEC=1 DEPLOY_APP_USER="$DEPLOY_APP_USER" \
+    sudo -u "$DEPLOY_APP_USER" -H bash "$ROOT/scripts/deploy.sh" "$@"
+fi
+
 # ------------------------------------------------------------------ lock ----
 # Cegah dua deploy berjalan bersamaan (mis. cron + manual).
+if [[ -e "$LOCK_FILE" && ! -w "$LOCK_FILE" ]]; then
+  die "Lock file $LOCK_FILE ada tapi tidak bisa ditulis oleh user $(id -un).
+  Kemungkinan pernah dibuat oleh user lain/root. Perbaiki dengan:
+    sudo rm -f $LOCK_FILE"
+fi
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
   die "Deploy lain sedang berjalan. Hapus $LOCK_FILE hanya jika yakin tidak ada proses deploy aktif."
@@ -94,17 +110,17 @@ hash_dir() { find "$1" -type f -name '*.sql' -print0 2>/dev/null | sort -z | xar
 if [[ "$STATUS_ONLY" -eq 1 ]]; then
   git fetch --quiet origin "$BRANCH" || warn "fetch gagal (offline?)"
   REMOTE_COMMIT="$(git rev-parse "origin/$BRANCH" 2>/dev/null || echo "?")"
-  echo "Deploy dir           : $ROOT"
-  echo "Branch               : $CURRENT_BRANCH (target: $BRANCH)"
-  echo "HEAD sekarang        : $(git log -1 --format='%h %s' "$CURRENT_COMMIT")"
-  echo "Deploy terakhir      : ${DEPLOYED_COMMIT:-<belum pernah>}"
-  echo "origin/$BRANCH     : $(git log -1 --format='%h %s' "$REMOTE_COMMIT" 2>/dev/null || echo '?')"
+  printf '  %-18s %s\n' "Deploy dir"      "$ROOT"
+  printf '  %-18s %s\n' "Branch"          "$CURRENT_BRANCH (target: $BRANCH)"
+  printf '  %-18s %s\n' "HEAD sekarang"   "$(git log -1 --format='%h %s' "$CURRENT_COMMIT")"
+  printf '  %-18s %s\n' "Deploy terakhir" "${DEPLOYED_COMMIT:-<belum pernah>}"
+  printf '  %-18s %s\n' "origin/$BRANCH"  "$(git log -1 --format='%h %s' "$REMOTE_COMMIT" 2>/dev/null || echo '?')"
   if [[ "$DEPLOYED_COMMIT" == "$REMOTE_COMMIT" ]]; then
-    echo "Status            : UP TO DATE"
+    printf '  %-18s %s\n' "Status" "UP TO DATE"
   elif [[ -z "$DEPLOYED_COMMIT" ]]; then
-    echo "Status            : BELUM PERNAH DI-DEPLOY (jalankan ./scripts/deploy.sh)"
+    printf '  %-18s %s\n' "Status" "BELUM PERNAH DI-DEPLOY (jalankan ./scripts/deploy.sh)"
   else
-    echo "Status            : ADA PERUBAHAN YANG BELUM DI-DEPLOY ($(git rev-list --count "$DEPLOYED_COMMIT..$REMOTE_COMMIT" 2>/dev/null || echo '?') commit)"
+    printf '  %-18s %s\n' "Status" "ADA PERUBAHAN YANG BELUM DI-DEPLOY ($(git rev-list --count "$DEPLOYED_COMMIT..$REMOTE_COMMIT" 2>/dev/null || echo '?') commit)"
   fi
   exit 0
 fi
@@ -115,23 +131,39 @@ if [[ "$CURRENT_BRANCH" != "$BRANCH" ]]; then
 fi
 [[ -f "$ROOT/backend/.env" ]] || die "backend/.env tidak ada. Deploy butuh konfigurasi itu."
 
+# Override manual selalu menang: DEPLOY_NODE_BIN=/path/ke/node
 resolve_bin() {
-  local name="$1"
-  if command -v "$name" >/dev/null 2>&1; then command -v "$name"; return; fi
+  local name="$1" override_var="${2:-}"
+  if [[ -n "$override_var" && -n "${!override_var:-}" && -x "${!override_var}" ]]; then
+    echo "${!override_var}"; return 0
+  fi
+  if command -v "$name" >/dev/null 2>&1; then command -v "$name"; return 0; fi
   local hit nvm_root
-  hit="$(ls -d /www/server/nodejs/*/bin/"$name" 2>/dev/null | sort -V | tail -n1 || true)"
-  [[ -n "$hit" && -x "$hit" ]] && { echo "$hit"; return; }
-  for nvm_root in "${NVM_DIR:-}" "$HOME/.nvm" /root/.nvm; do
+  for dir in /www/server/nodejs/*/bin /www/server/panel/pyenv/bin; do
+    [[ -x "$dir/$name" ]] && { echo "$dir/$name"; return 0; }
+  done
+  for nvm_root in "${NVM_DIR:-}" "$HOME/.nvm" /root/.nvm /usr/local/nvm; do
     [[ -z "$nvm_root" ]] && continue
     hit="$(ls -d "$nvm_root"/versions/node/*/bin/"$name" 2>/dev/null | sort -V | tail -n1 || true)"
-    [[ -n "$hit" && -x "$hit" ]] && { echo "$hit"; return; }
+    [[ -n "$hit" && -x "$hit" ]] && { echo "$hit"; return 0; }
+  done
+  for dir in /usr/local/bin /usr/bin /opt/node/bin /opt/*/bin; do
+    [[ -x "$dir/$name" ]] && { echo "$dir/$name"; return 0; }
   done
   return 1
 }
 
-NODE_BIN="$(resolve_bin node)" || die "node tidak ditemukan di PATH maupun /www/server/nodejs."
-NPM_BIN="$(resolve_bin npm)"    || die "npm tidak ditemukan."
-PM2_BIN="$(resolve_bin pm2 || true)"
+if ! NODE_BIN="$(resolve_bin node DEPLOY_NODE_BIN)"; then
+  die "node tidak ditemukan.
+  Yang dicek: PATH, /www/server/nodejs/*/bin, ~/.nvm/versions/node/*/bin,
+              /usr/local/bin, /usr/bin, /opt/*/bin
+  Kalau node ada di tempat lain, set manual:
+    DEPLOY_NODE_BIN=/path/ke/node ./scripts/deploy.sh
+  Untuk melihat node milik user ini:
+    $(id -un) -lc 'command -v node; node -v'"
+fi
+NPM_BIN="$(resolve_bin npm DEPLOY_NPM_BIN)" || die "npm tidak ditemukan (di sebelah node: $(dirname "$NODE_BIN"))."
+PM2_BIN="$(resolve_bin pm2 DEPLOY_PM2_BIN || true)"
 if [[ -z "$PM2_BIN" && "$DRY_RUN" -eq 0 ]]; then
   die "pm2 tidak ditemukan."
 fi
