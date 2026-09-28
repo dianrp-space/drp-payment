@@ -31,9 +31,56 @@ if [[ -n "$SSH_KEY" ]]; then
   SSH_KEY="${SSH_KEY/#\~/$HOME}"
   SSH_OPTS+=(-i "$SSH_KEY")
 fi
+# BatchMode: jangan pernah menggantung menunggu prompt password — di CI tidak
+# ada yang bisa mengetik. ConnectTimeout: gagal cepat dengan error yang terbaca.
+SSH_OPTS+=(-o BatchMode=yes -o ConnectTimeout=20)
 
 RSYNC_SSH="ssh ${SSH_OPTS[*]}"
 REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
+
+# ---------------------------------------------------------------------------
+# Preflight: validasi key + tes koneksi sebelum rsync pertama.
+# Tanpa ini, kegagalan SSH hanya muncul sebagai
+#   rsync: unexplained error (code 255) at io.c(232)
+# yang tidak memberi petunjuk sama sekali.
+# ---------------------------------------------------------------------------
+SSH_ERR_LOG="$(mktemp)"
+trap 'rm -f "$SSH_ERR_LOG"' EXIT
+
+if [[ -n "$SSH_KEY" ]]; then
+  if [[ ! -f "$SSH_KEY" ]]; then
+    echo "PREFLIGHT GAGAL: file SSH key tidak ditemukan: $SSH_KEY" >&2
+    exit 1
+  fi
+  if ! ssh-keygen -y -f "$SSH_KEY" >/dev/null 2>&1; then
+    echo "PREFLIGHT GAGAL: $SSH_KEY bukan private key yang valid." >&2
+    echo "  Penyebab paling umum: secret DEPLOY_SSH_KEY mengandung CRLF," >&2
+    echo "  baris kosong di akhir, atau spasi yang tidak disengaja." >&2
+    echo "  Cek: ssh-keygen -y -f <key> | head -c 40" >&2
+    exit 1
+  fi
+  # Permission longgar ditolak OpenSSH dengan error yang membingungkan.
+  chmod 600 "$SSH_KEY" 2>/dev/null || true
+fi
+
+connected=0
+for attempt in 1 2 3; do
+  if ssh "${SSH_OPTS[@]}" "$REMOTE" true 2>"$SSH_ERR_LOG"; then
+    connected=1
+    break
+  fi
+  echo ">> SSH gagal (percobaan $attempt/3): $(tail -n 1 "$SSH_ERR_LOG")"
+  [[ "$attempt" -lt 3 ]] && sleep $((attempt * 5))
+done
+
+if [[ "$connected" -ne 1 ]]; then
+  echo "PREFLIGHT GAGAL: tidak bisa SSH ke ${REMOTE}:${DEPLOY_PORT}" >&2
+  echo "  ssh: $(tail -n 1 "$SSH_ERR_LOG")" >&2
+  echo "  Cek: authorized_keys untuk ${DEPLOY_USER}, permission ~/.ssh," >&2
+  echo "  DEPLOY_PORT, dan apakah IP runner diblokir fail2ban." >&2
+  exit 1
+fi
+echo ">> SSH OK → ${REMOTE}:${DEPLOY_PORT}"
 
 echo ">> Sync web/dist → ${REMOTE}:${DEPLOY_PATH}/web/dist"
 # P .user.ini keeps aaPanel's immutable file from being deleted.

@@ -77,8 +77,20 @@ jobs:
 
           umask 077
           mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          # Secret yang di-paste dari Windows sering membawa CRLF, dan secret yang
+          # sudah berakhir newline akan ketambah baris kosong. OpenSSH menolak
+          # key dengan \r di dalamnya, dan rsync hanya melaporkan "unexplained
+          # error (code 255)". Bersihkan dulu sebelum dipakai.
+          printf '%s' "$DEPLOY_SSH_KEY" \
+            | tr -d '\r' \
+            | sed -e '/^[[:space:]]*$/d' \
+            > ~/.ssh/deploy_key
+          printf '\n' >> ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null; then
+            echo "::error::DEPLOY_SSH_KEY bukan private key yang valid setelah dibersihkan."
+            exit 1
+          fi
           export DEPLOY_SSH_KEY="$HOME/.ssh/deploy_key"
           export DEPLOY_PORT="${DEPLOY_PORT:-22}"
           chmod +x scripts/deploy.sh
