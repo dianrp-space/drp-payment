@@ -335,13 +335,39 @@ ok "State deploy ditulis (.deploy-state)"
 # ------------------------------------------------------------------ pm2 -----
 log "Restart PM2: $PM2_NAME"
 mkdir -p backend/uploads/merchants web/dist
-# ecosystem config kini menjalankan src/server.js (dulu dist/server.cjs).
+
+# Backend berjalan dari src/server.js, bukan lagi bundle dist/server.cjs.
+# `pm2 restart` mempertahankan script path yang sedang berjalan, jadi kalau
+# PM2 masih memegang bundle lama, restart akan terus menjalankan kode lama
+# sementara web/ sudah baru — gejalanya route baru balas 404. Karena itu
+# bandingkan script path yang benar-benar berjalan dengan yang diminta
+# ecosystem, dan recreate prosesnya kalau beda.
+expected_script="$(sed -n 's/.*script: path.join(__dirname, "\([^"]*\)".*/\1/p' backend/ecosystem.config.cjs | head -1)"
+expected_path="$ROOT/backend/${expected_script:-src/server.js}"
+running_path=""
 if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
+  running_path="$(pm2 describe "$PM2_NAME" 2>/dev/null \
+    | sed -n 's/.*script path *│ *\(.*[^ ]\) *│$/\1/p' | head -1)"
+fi
+
+if [[ -n "$running_path" && "$running_path" != "$expected_path" ]]; then
+  warn "PM2 sedang menjalankan $running_path"
+  warn "Ekosistem sekarang memakai $expected_path — proses akan dibuat ulang."
+  pm2 delete "$PM2_NAME" || true
+  pm2 start backend/ecosystem.config.cjs
+elif [[ -n "$running_path" ]]; then
   pm2 restart "$PM2_NAME" --update-env
 else
   pm2 start backend/ecosystem.config.cjs
 fi
 pm2 save --quiet 2>/dev/null || true
+
+# Bundle lama tidak lagi dipakai dan berbahaya kalau suatu saat ter-start
+# lagi. dist/ tetap dipakai untuk openapi.json.
+if [[ -f backend/dist/server.cjs ]]; then
+  rm -f backend/dist/server.cjs
+  ok "Bundle lama backend/dist/server.cjs dihapus"
+fi
 
 # ---------------------------------------------------------- health check ----
 PORT="$(sed -n 's/^PORT=//p' backend/.env | head -1 | tr -d '"'"'"' ' | head -1)"
