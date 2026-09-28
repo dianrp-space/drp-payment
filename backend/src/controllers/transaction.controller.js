@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { badRequest } from "../utils/errors.js";
 import * as transactionService from "../services/transaction.service.js";
 import { maybeRefreshFromGopay } from "../services/gopay-gateway.service.js";
+import { maybeRefreshFromShopeepay } from "../services/shopeepay-gateway.service.js";
 
 const createSchema = z.object({
   referenceId: z.string().min(1).max(100),
@@ -30,6 +31,7 @@ export const getPaymentStatus = asyncHandler(async (req, res) => {
   const query = statusSchema.parse(req.query);
   let tx = await transactionService.getTransactionStatus(req.merchant, query);
   tx = await maybeRefreshFromGopay(tx, req.merchant);
+  tx = await maybeRefreshFromShopeepay(tx, req.merchant);
   res.json(transactionService.serializeTransaction(tx));
 });
 

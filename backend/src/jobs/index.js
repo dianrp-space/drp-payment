@@ -2,6 +2,7 @@ import { logger } from "../config/logger.js";
 import { expireStaleTransactions } from "../services/transaction.service.js";
 import { processPendingRetries } from "../services/webhook.service.js";
 import { pollPendingGopayTransactions } from "../services/gopay-gateway.service.js";
+import { pollPendingShopeepayTransactions } from "../services/shopeepay-gateway.service.js";
 import { deleteAuditLogsOlderThan } from "../services/admin.service.js";
 import { getAuditCleanupSettings } from "../services/app-setting.service.js";
 
@@ -71,6 +72,9 @@ export function startJobs() {
 
   // Poll gopay-qris for PENDING txs belonging to GOPAY merchants
   register("gopay-poll", () => pollPendingGopayTransactions(), 20_000);
+
+  // Poll qris-shopeepay for PENDING txs belonging to SHOPEEPAY merchants
+  register("shopeepay-poll", () => pollPendingShopeepayTransactions(), 20_000);
 
   // Auto-cleanup audit logs — interval & retention dibaca dari DB,
   // bisa diubah dari dashboard (akan re-register job).

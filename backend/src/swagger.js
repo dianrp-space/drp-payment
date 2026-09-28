@@ -151,8 +151,8 @@ export function buildSwaggerOptions(serverUrl = appUrl) {
               webhookUrl: { type: "string", format: "uri" },
               qrisMode: {
                 type: "string",
-                enum: ["OTHERS", "GOPAY"],
-                description: "OTHERS = MacroDroid callback, GOPAY = poll gopay-qris gateway",
+                enum: ["OTHERS", "GOPAY", "SHOPEEPAY"],
+                description: "OTHERS = MacroDroid callback, GOPAY = poll gopay-qris gateway, SHOPEEPAY = poll qris-shopeepay gateway",
               },
               gopayGatewayUrl: {
                 type: "string",

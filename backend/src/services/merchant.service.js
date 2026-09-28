@@ -11,6 +11,7 @@ import { parseQrisFromImage } from "../utils/qris-parser.js";
 import { conflict, badRequest, notFound } from "../utils/errors.js";
 import { assertSafeWebhookUrl } from "../utils/ssrf.js";
 import * as gopayGateway from "./gopay-gateway.service.js";
+import * as shopeepayGateway from "./shopeepay-gateway.service.js";
 
 /** Generate a per-merchant Macrodroid callback token. */
 function generateCallbackToken() {
@@ -30,6 +31,15 @@ export function gopayPublicFields(merchant) {
     gopayGatewayUrl: merchant.gopayGatewayUrl ?? null,
     hasGopayGatewayApiKey: !!merchant.gopayGatewayApiKeyEncrypted,
     gopayGatewayApiKeyHint: maskSecretHint(rawKey),
+  };
+}
+
+export function shopeepayPublicFields(merchant) {
+  const rawKey = decryptApiKey(merchant.shopeepayGatewayApiKeyEncrypted);
+  return {
+    shopeepayGatewayUrl: merchant.shopeepayGatewayUrl ?? null,
+    hasShopeepayGatewayApiKey: !!merchant.shopeepayGatewayApiKeyEncrypted,
+    shopeepayGatewayApiKeyHint: maskSecretHint(rawKey),
   };
 }
 
@@ -88,6 +98,55 @@ function applyGopayConfig(payload, input, { isCreate = false, existing = null } 
   }
 }
 
+/** Sama seperti applyGopayConfig, tapi untuk kolom ShopeePay. */
+function applyShopeepayConfig(payload, input, { isCreate = false, existing = null } = {}) {
+  const qrisMode = input.qrisMode ?? (isCreate ? "OTHERS" : undefined);
+  const nextMode = qrisMode ?? existing?.qrisMode ?? "OTHERS";
+  if (nextMode !== "SHOPEEPAY") {
+    if (isCreate || qrisMode !== undefined) {
+      payload.shopeepayGatewayUrl = null;
+      payload.shopeepayGatewayApiKeyEncrypted = null;
+    }
+    return;
+  }
+
+  if (input.shopeepayGatewayUrl !== undefined) {
+    payload.shopeepayGatewayUrl = normalizeOptionalUrl(input.shopeepayGatewayUrl);
+    if (payload.shopeepayGatewayUrl === null) {
+      payload.shopeepayGatewayApiKeyEncrypted = null;
+    }
+  }
+
+  if (input.shopeepayGatewayApiKey !== undefined) {
+    const key = input.shopeepayGatewayApiKey;
+    if (key === null || String(key).trim() === "") {
+      payload.shopeepayGatewayApiKeyEncrypted = null;
+    } else {
+      payload.shopeepayGatewayApiKeyEncrypted = encryptApiKey(String(key).trim());
+    }
+  }
+
+  const nextUrl =
+    payload.shopeepayGatewayUrl !== undefined
+      ? payload.shopeepayGatewayUrl
+      : existing?.shopeepayGatewayUrl ?? null;
+  const nextHasKey =
+    payload.shopeepayGatewayApiKeyEncrypted !== undefined
+      ? !!payload.shopeepayGatewayApiKeyEncrypted
+      : !!existing?.shopeepayGatewayApiKeyEncrypted;
+
+  if (nextUrl && !nextHasKey) {
+    throw badRequest(
+      "shopeepayGatewayApiKey wajib jika mengisi shopeepayGatewayUrl"
+    );
+  }
+  if (!nextUrl && nextHasKey) {
+    throw badRequest(
+      "shopeepayGatewayUrl wajib jika mengisi shopeepayGatewayApiKey"
+    );
+  }
+}
+
 /**
  * Create a new merchant. Returns the merchant row + the RAW api key
  * (only shown once — caller must persist/return immediately).
@@ -120,6 +179,10 @@ export async function createMerchant(input) {
     // QRIS statis diambil otomatis dari gateway GoBiz (custom atau global).
     const fetched = await gopayGateway.fetchStaticQrisForInput(input, null);
     staticQris = fetched.staticQris;
+  } else if (qrisMode === "SHOPEEPAY") {
+    // QRIS statis diambil otomatis dari gateway qris-shopeepay (custom atau global).
+    const fetched = await shopeepayGateway.fetchStaticQrisForInput(input, null);
+    staticQris = fetched.staticQris;
   }
 
   if (email) {
@@ -130,6 +193,7 @@ export async function createMerchant(input) {
   const { raw, hash, hint } = generateApiKey();
   const gopayData = {};
   applyGopayConfig(gopayData, input, { isCreate: true });
+  applyShopeepayConfig(gopayData, input, { isCreate: true });
   const merchant = await prisma.merchant.create({
     data: {
       name,
@@ -226,23 +290,27 @@ export async function updateMerchant(id, data) {
 
   const existing = await getMerchantById(id);
   const nextMode = data.qrisMode ?? existing.qrisMode ?? "OTHERS";
-  const gatewayConfigChanged =
+  const gopayConfigChanged =
     data.gopayGatewayUrl !== undefined || data.gopayGatewayApiKey !== undefined;
+  const shopeepayConfigChanged =
+    data.shopeepayGatewayUrl !== undefined ||
+    data.shopeepayGatewayApiKey !== undefined;
 
-  if (nextMode === "GOPAY") {
-    // QRIS statis Gopay selalu diambil dari gateway — tolak input manual.
+  if (nextMode === "GOPAY" || nextMode === "SHOPEEPAY") {
+    const label = nextMode === "GOPAY" ? "Gopay" : "ShopeePay";
+    const gateway = nextMode === "GOPAY" ? gopayGateway : shopeepayGateway;
+    const configChanged =
+      nextMode === "GOPAY" ? gopayConfigChanged : shopeepayConfigChanged;
+
+    // QRIS statis selalu diambil dari gateway — tolak input manual.
     if (data.staticQris !== undefined) {
       throw badRequest(
-        "staticQris tidak bisa diubah manual untuk merchant Gopay. QRIS diambil otomatis dari gateway GoBiz."
+        `staticQris tidak bisa diubah manual untuk merchant ${label}. QRIS diambil otomatis dari gateway.`
       );
     }
-    // Fetch ulang hanya saat mode baru GOPAY / config gateway berubah / QRIS belum ada.
-    if (
-      data.qrisMode === "GOPAY" ||
-      gatewayConfigChanged ||
-      !existing.staticQris
-    ) {
-      const fetched = await gopayGateway.fetchStaticQrisForInput(data, existing);
+    // Fetch ulang hanya saat mode baru / config gateway berubah / QRIS belum ada.
+    if (data.qrisMode === nextMode || configChanged || !existing.staticQris) {
+      const fetched = await gateway.fetchStaticQrisForInput(data, existing);
       payload.staticQris = fetched.staticQris;
     }
   } else if (data.staticQris !== undefined) {
@@ -255,6 +323,7 @@ export async function updateMerchant(id, data) {
     payload.staticQris = qris;
   }
   applyGopayConfig(payload, data, { isCreate: false, existing });
+  applyShopeepayConfig(payload, data, { isCreate: false, existing });
   return prisma.merchant.update({ where: { id }, data: payload });
 }
 

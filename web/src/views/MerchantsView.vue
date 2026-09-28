@@ -67,10 +67,16 @@ const form = ref({
   useCustomGateway: false,
   gopayGatewayUrl: "",
   gopayGatewayApiKey: "",
+  useCustomShopeepayGateway: false,
+  shopeepayGatewayUrl: "",
+  shopeepayGatewayApiKey: "",
 });
 const testingGopay = ref(false);
 const gopayFetching = ref(false);
 const gopayStaticQris = ref<string | null>(null);
+const testingShopeepay = ref(false);
+const shopeepayFetching = ref(false);
+const shopeepayStaticQris = ref<string | null>(null);
 const qrisPreviewUrl = ref<string | null>(null);
 const deleting = ref<string | null>(null);
 const alert = useAlert();
@@ -183,13 +189,83 @@ async function fetchGopayStaticQris() {
   }
 }
 
+async function fetchShopeepayStaticQris() {
+  shopeepayFetching.value = true;
+  shopeepayStaticQris.value = null;
+  try {
+    const body =
+      form.value.useCustomShopeepayGateway &&
+      form.value.shopeepayGatewayUrl.trim() &&
+      form.value.shopeepayGatewayApiKey.trim()
+        ? {
+            url: form.value.shopeepayGatewayUrl.trim(),
+            apiKey: form.value.shopeepayGatewayApiKey.trim(),
+          }
+        : {};
+    const res = await api.getShopeepayStaticQris(body);
+    if (res.success && res.qrisStatic) {
+      shopeepayStaticQris.value = res.qrisStatic;
+      alert.show(
+        `QRIS statis berhasil diambil dari gateway ${res.source === "merchant" ? "pribadi" : "global"}. QRIS ini akan dipakai untuk merchant ini.`,
+        "success"
+      );
+    } else {
+      alert.show(
+        res.message || "Gagal mengambil QRIS statis dari gateway ShopeePay",
+        "warning"
+      );
+    }
+  } catch (e) {
+    alert.show(
+      e instanceof HttpError ? e.message : "Gagal mengambil QRIS statis",
+      "error"
+    );
+  } finally {
+    shopeepayFetching.value = false;
+  }
+}
+
+async function testCreateShopeepay() {
+  if (
+    !form.value.shopeepayGatewayUrl.trim() ||
+    !form.value.shopeepayGatewayApiKey.trim()
+  ) {
+    toast.error("Isi URL dan API key dulu");
+    return;
+  }
+  testingShopeepay.value = true;
+  try {
+    const res = await api.testShopeepayConnection({
+      url: form.value.shopeepayGatewayUrl.trim(),
+      apiKey: form.value.shopeepayGatewayApiKey.trim(),
+    });
+    if (res.success) {
+      alert.show(
+        `Koneksi ShopeePay berhasil. Token ${res.tokenStatus === "invalid" ? "tidak valid" : "valid"}. ${res.message || ""}`,
+        "success"
+      );
+    } else {
+      alert.show(res.message || "Koneksi ShopeePay gagal", "error");
+    }
+  } catch (e) {
+    alert.show(e instanceof HttpError ? e.message : "Gagal tes koneksi", "error");
+  } finally {
+    testingShopeepay.value = false;
+  }
+}
+
 function selectQrisMode(mode: QrisMode) {
   form.value.qrisMode = mode;
   if (mode === "GOPAY") {
     // Auto-fetch QRIS statis dari gateway (global atau custom)
     fetchGopayStaticQris();
+    shopeepayStaticQris.value = null;
+  } else if (mode === "SHOPEEPAY") {
+    fetchShopeepayStaticQris();
+    gopayStaticQris.value = null;
   } else {
     gopayStaticQris.value = null;
+    shopeepayStaticQris.value = null;
   }
 }
 
@@ -205,6 +281,17 @@ async function handleCreate() {
   if (form.value.qrisMode === "GOPAY" && form.value.useCustomGateway) {
     if (!form.value.gopayGatewayUrl.trim() || !form.value.gopayGatewayApiKey.trim()) {
       toast.error("URL dan API key gateway Gopay wajib diisi untuk gateway sendiri");
+      return;
+    }
+  }
+  if (form.value.qrisMode === "SHOPEEPAY" && form.value.useCustomShopeepayGateway) {
+    if (
+      !form.value.shopeepayGatewayUrl.trim() ||
+      !form.value.shopeepayGatewayApiKey.trim()
+    ) {
+      toast.error(
+        "URL dan API key gateway ShopeePay wajib diisi untuk gateway sendiri"
+      );
       return;
     }
   }
@@ -232,6 +319,12 @@ async function handleCreateConfirmed() {
             gopayGatewayApiKey: form.value.gopayGatewayApiKey.trim(),
           }
         : {}),
+      ...(form.value.qrisMode === "SHOPEEPAY" && form.value.useCustomShopeepayGateway
+        ? {
+            shopeepayGatewayUrl: form.value.shopeepayGatewayUrl.trim(),
+            shopeepayGatewayApiKey: form.value.shopeepayGatewayApiKey.trim(),
+          }
+        : {}),
     });
     createdMerchant.value = {
       ...res.merchant,
@@ -250,9 +343,13 @@ async function handleCreateConfirmed() {
       useCustomGateway: false,
       gopayGatewayUrl: "",
       gopayGatewayApiKey: "",
+      useCustomShopeepayGateway: false,
+      shopeepayGatewayUrl: "",
+      shopeepayGatewayApiKey: "",
     };
     clearQrisImage();
     gopayStaticQris.value = null;
+    shopeepayStaticQris.value = null;
     await load();
   } catch (e) {
     const msg = e instanceof HttpError ? e.message : "Gagal membuat merchant";
@@ -381,9 +478,19 @@ onMounted(load);
                 >
                   Gopay
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="form.qrisMode === 'SHOPEEPAY' ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="selectQrisMode('SHOPEEPAY')"
+                >
+                  ShopeePay
+                </Button>
               </div>
               <p class="text-[11px] text-base-content/60">
-                Gopay: cek pembayaran via API GoBiz. Others: flow MacroDroid seperti biasa.
+                Gopay: cek pembayaran via API GoBiz. ShopeePay: cek via qris-shopeepay.
+                Others: flow MacroDroid seperti biasa.
               </p>
             </div>
 
@@ -515,6 +622,95 @@ onMounted(load);
                     gopayFetching
                       ? "Mengambil QRIS statis dari gateway GoBiz..."
                       : "Belum ada QRIS statis. Klik 'Ambil dari GoBiz' untuk memuat otomatis, atau simpan merchant (QRIS akan diambil otomatis oleh server)."
+                  }}
+                </p>
+              </div>
+            </div>
+
+            <div v-if="form.qrisMode === 'SHOPEEPAY'" class="flex flex-col gap-3 rounded-md border border-base-300 p-3">
+              <div class="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="!form.useCustomShopeepayGateway ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="form.useCustomShopeepayGateway = false; fetchShopeepayStaticQris()"
+                >
+                  Pakai gateway global
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  :variant="form.useCustomShopeepayGateway ? 'default' : 'outline'"
+                  :disabled="creating"
+                  @click="form.useCustomShopeepayGateway = true; fetchShopeepayStaticQris()"
+                >
+                  Gateway sendiri
+                </Button>
+              </div>
+              <template v-if="form.useCustomShopeepayGateway">
+                <div class="flex flex-col gap-1.5">
+                  <Label for="m-shopeepay-url">URL qris-shopeepay</Label>
+                  <Input
+                    id="m-shopeepay-url"
+                    v-model="form.shopeepayGatewayUrl"
+                    placeholder="https://shopee.domainkamu.com"
+                    :disabled="creating"
+                    class="font-mono text-xs"
+                  />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <Label for="m-shopeepay-key">API Key gateway</Label>
+                  <Input
+                    id="m-shopeepay-key"
+                    v-model="form.shopeepayGatewayApiKey"
+                    type="password"
+                    placeholder="API_KEY dari .env qris-shopeepay"
+                    :disabled="creating"
+                    class="font-mono text-xs"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  class="self-start"
+                  :disabled="creating || testingShopeepay"
+                  @click="testCreateShopeepay"
+                >
+                  <Loader2 v-if="testingShopeepay" class="size-3.5 animate-spin" />
+                  Test koneksi
+                </Button>
+              </template>
+              <p v-else class="text-[11px] text-base-content/60">
+                Menggunakan URL &amp; API key yang diisi di Integrasi → ShopeePay Gateway.
+              </p>
+
+              <div class="rounded-md border border-base-300 bg-base-200/50 p-3 flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-[11px] uppercase tracking-wider text-base-content/60">
+                    QRIS statis ShopeePay
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    :disabled="creating || shopeepayFetching"
+                    @click="fetchShopeepayStaticQris"
+                  >
+                    <Loader2 v-if="shopeepayFetching" class="size-3.5 animate-spin" />
+                    <RefreshCw v-else class="size-3.5" />
+                    Ambil dari gateway
+                  </Button>
+                </div>
+                <p v-if="shopeepayStaticQris" class="font-mono text-[11px] bg-base-100 border border-base-300 rounded px-2.5 py-2 break-all leading-relaxed max-h-20 overflow-y-auto">
+                  {{ shopeepayStaticQris }}
+                </p>
+                <p v-else class="text-xs text-base-content/60">
+                  {{
+                    shopeepayFetching
+                      ? "Mengambil QRIS statis dari gateway ShopeePay..."
+                      : "Belum ada QRIS statis. Klik 'Ambil dari gateway' untuk memuat otomatis, atau simpan merchant (QRIS akan diambil otomatis oleh server)."
                   }}
                 </p>
               </div>
@@ -658,7 +854,7 @@ onMounted(load);
             </TableCell>
             <TableCell>
               <RouterLink :to="`/merchants/${m.id}`" class="text-xs font-mono">
-                {{ m.qrisMode === "GOPAY" ? "Gopay" : "Others" }}
+                {{ m.qrisMode === "GOPAY" ? "Gopay" : m.qrisMode === "SHOPEEPAY" ? "ShopeePay" : "Others" }}
               </RouterLink>
             </TableCell>
             <TableCell class="text-right font-mono tabular-nums text-sm">

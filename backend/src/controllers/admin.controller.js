@@ -42,9 +42,11 @@ const createSchema = z.object({
   staticQris: z.string().min(1).optional(),
   qrisImageBase64: z.string().min(1).optional(),
   webhookUrl: z.string().url().optional(),
-  qrisMode: z.enum(["OTHERS", "GOPAY"]).optional(),
+  qrisMode: z.enum(["OTHERS", "GOPAY", "SHOPEEPAY"]).optional(),
   gopayGatewayUrl: z.string().url().nullable().optional(),
   gopayGatewayApiKey: z.string().min(1).max(200).nullable().optional(),
+  shopeepayGatewayUrl: z.string().url().nullable().optional(),
+  shopeepayGatewayApiKey: z.string().min(1).max(200).nullable().optional(),
 });
 
 export const createMerchant = asyncHandler(async (req, res) => {
@@ -62,6 +64,7 @@ export const createMerchant = asyncHandler(async (req, res) => {
       avatarPath: merchant.avatarPath ?? null,
       createdAt: merchant.createdAt,
       ...merchantService.gopayPublicFields(merchant),
+      ...merchantService.shopeepayPublicFields(merchant),
       apiKey: rawApiKey,
       webhookSecret: merchant.webhookSecret,
       callbackToken: merchant.callbackToken,
@@ -96,6 +99,7 @@ export const getMerchant = asyncHandler(async (req, res) => {
       status: merchant.status,
       createdAt: merchant.createdAt,
       ...merchantService.gopayPublicFields(merchant),
+      ...merchantService.shopeepayPublicFields(merchant),
     },
   });
 });
@@ -108,9 +112,11 @@ const updateMerchantSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   email: z.string().email().max(120).nullable().optional(),
   staticQris: z.string().min(1).max(500).optional(),
-  qrisMode: z.enum(["OTHERS", "GOPAY"]).optional(),
+  qrisMode: z.enum(["OTHERS", "GOPAY", "SHOPEEPAY"]).optional(),
   gopayGatewayUrl: z.union([z.string().url(), z.literal(""), z.null()]).optional(),
   gopayGatewayApiKey: z.string().max(200).nullable().optional(),
+  shopeepayGatewayUrl: z.union([z.string().url(), z.literal(""), z.null()]).optional(),
+  shopeepayGatewayApiKey: z.string().max(200).nullable().optional(),
 });
 
 export const updateWebhook = asyncHandler(async (req, res) => {
@@ -123,8 +129,20 @@ export const updateWebhook = asyncHandler(async (req, res) => {
 export const updateMerchant = asyncHandler(async (req, res) => {
   const data = updateMerchantSchema.parse(req.body);
   const merchant = await merchantService.updateMerchant(req.params.id, data);
-  const { gopayGatewayApiKeyEncrypted, apiKeyHash, apiKeyEncrypted, ...safe } = merchant;
-  res.json({ merchant: { ...safe, ...merchantService.gopayPublicFields(merchant) } });
+  const {
+    gopayGatewayApiKeyEncrypted,
+    shopeepayGatewayApiKeyEncrypted,
+    apiKeyHash,
+    apiKeyEncrypted,
+    ...safe
+  } = merchant;
+  res.json({
+    merchant: {
+      ...safe,
+      ...merchantService.gopayPublicFields(merchant),
+      ...merchantService.shopeepayPublicFields(merchant),
+    },
+  });
 });
 
 export const rotateApiKey = asyncHandler(async (req, res) => {
